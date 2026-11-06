@@ -12,13 +12,16 @@ export function homePathFor(role: Role) {
       return '/student';
     case 'PARENT':
       return '/parent';
+    case 'ACCOUNTANT':
+      return '/finance';
     default:
-      // Accountants and librarians get their own screens in later phases.
+      // Librarians have no screens of their own yet.
       return '/profile';
   }
 }
 
 export const ADMIN_ROLES: Role[] = ['SUPER_ADMIN', 'ADMIN'];
+export const FINANCE_ROLES: Role[] = ['ACCOUNTANT', ...ADMIN_ROLES];
 
 const ROLE_LABELS: Record<Role, string> = {
   SUPER_ADMIN: 'Super admin',

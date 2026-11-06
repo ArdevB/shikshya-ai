@@ -3,7 +3,11 @@ import { closePdfBrowser } from '../src/pdf/render.js';
 import { esewaSignature, signedMessage } from '../src/services/gateways/esewa.js';
 import { applyOverdueAndFines } from '../src/services/finance.service.js';
 import { reconcilePayments } from '../src/services/payment.service.js';
-import { marksheetHtmlFor, receiptHtmlFor, transcriptHtmlFor } from '../src/services/pdf.service.js';
+import {
+  marksheetHtmlFor,
+  receiptHtmlFor,
+  transcriptHtmlFor,
+} from '../src/services/pdf.service.js';
 import { api, bearer, createFixture, prisma, resetDatabase, tokenFor } from './helpers.js';
 
 type Fixture = Awaited<ReturnType<typeof createFixture>>;
@@ -671,7 +675,9 @@ describe('paying with Khalti', () => {
 
   it('never marks paid on an unverifiable reference', async () => {
     const { invoice, paymentId } = await started();
-    fetchMock.mockResolvedValueOnce(json(404, { detail: 'Not found.', error_key: 'validation_error' }));
+    fetchMock.mockResolvedValueOnce(
+      json(404, { detail: 'Not found.', error_key: 'validation_error' }),
+    );
     await khaltiCallback(paymentId);
     const payment = await prisma.payment.findUniqueOrThrow({ where: { id: paymentId } });
     expect(payment.status).toBe('INITIATED');
@@ -740,7 +746,7 @@ describe('reconciling abandoned payments', () => {
       data: { status: 'FAILED' },
     });
     const invoice = await freshInvoice();
-    const { paymentId } = (await initiate(invoice.id)).body;
+    await initiate(invoice.id);
     fetchMock.mockResolvedValue(
       json(200, { status: 'COMPLETE', total_amount: 1500, ref_id: 'ABC' }),
     );
@@ -782,7 +788,9 @@ describe('manual payments', () => {
     await pay(invoice.id, '600');
     stored = await prisma.invoice.findUniqueOrThrow({ where: { id: invoice.id } });
     expect(stored).toMatchObject({ status: 'PAID', paidPaisa: 100000 });
-    expect(await prisma.auditLog.count({ where: { action: 'PAYMENT_SUCCESS' } })).toBeGreaterThan(1);
+    expect(await prisma.auditLog.count({ where: { action: 'PAYMENT_SUCCESS' } })).toBeGreaterThan(
+      1,
+    );
   });
 
   it('refuses more than is outstanding', async () => {
@@ -914,9 +922,7 @@ describe('PDFs', () => {
       expect((await api().get(`${V1}/pdf/${path}`).set(bearer(parent))).status).toBe(403);
     }
     // And an accountant has no business reading results.
-    expect(
-      (await api().get(`${V1}/pdf/${paths[0]}`).set(bearer(accountant))).status,
-    ).toBe(403);
+    expect((await api().get(`${V1}/pdf/${paths[0]}`).set(bearer(accountant))).status).toBe(403);
   });
 
   it('forbids a student from downloading another student’s receipt (403)', async () => {
@@ -946,10 +952,12 @@ describe('PDFs', () => {
 
   it('escapes data in templates, so it cannot become markup', async () => {
     const invoice = await freshInvoice(100000);
-    const payment = await api()
-      .post(`${V1}/payments/manual`)
-      .set(bearer(accountant))
-      .send({ invoiceId: invoice.id, method: 'BANK', amount: '10', reference: '<script>x</script>' });
+    const payment = await api().post(`${V1}/payments/manual`).set(bearer(accountant)).send({
+      invoiceId: invoice.id,
+      method: 'BANK',
+      amount: '10',
+      reference: '<script>x</script>',
+    });
     const { html } = await receiptHtmlFor(studentUser(), payment.body.id);
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
@@ -973,9 +981,9 @@ describe('PDFs', () => {
 
   it('lets only a super admin change institution settings', async () => {
     const body = { name: 'Test College', address: 'Pokhara' };
-    expect((await api().put(`${V1}/settings/institution`).set(bearer(admin)).send(body)).status).toBe(
-      403,
-    );
+    expect(
+      (await api().put(`${V1}/settings/institution`).set(bearer(admin)).send(body)).status,
+    ).toBe(403);
     const superAdmin = await prisma.user.create({
       data: {
         email: 'super@test.local',

@@ -9,7 +9,8 @@ describe('role helpers', () => {
     expect(homePathFor('TEACHER')).toBe('/teacher');
     expect(homePathFor('STUDENT')).toBe('/student');
     expect(homePathFor('PARENT')).toBe('/parent');
-    expect(homePathFor('ACCOUNTANT')).toBe('/profile');
+    expect(homePathFor('ACCOUNTANT')).toBe('/finance');
+    expect(homePathFor('LIBRARIAN')).toBe('/profile');
   });
 
   it('has a label for every role', () => {

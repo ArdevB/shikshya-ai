@@ -322,11 +322,7 @@ export async function generateInvoices(user: CurrentUser, body: GenerateInvoices
 
   await notifySafely(async () => {
     for (const invoice of created) {
-      await notifyStudentsAndParents(
-        [invoice.studentId],
-        'INVOICE_ISSUED',
-        invoiceNotice(invoice),
-      );
+      await notifyStudentsAndParents([invoice.studentId], 'INVOICE_ISSUED', invoiceNotice(invoice));
     }
   });
 
@@ -533,19 +529,21 @@ export async function outstandingCsv() {
     'Outstanding (NPR)',
   ];
   const rupees = (paisa: number) => (paisa / 100).toFixed(2);
-  const rows = invoices.map(toInvoiceView).map((invoice) => [
-    invoice.invoiceNumber,
-    invoice.rollNumber,
-    invoice.studentName,
-    invoice.programCode,
-    invoice.semesterNumber,
-    invoice.dueDate.slice(0, 10),
-    invoice.status,
-    rupees(invoice.totalPaisa),
-    rupees(invoice.finePaisa),
-    rupees(invoice.discountPaisa),
-    rupees(invoice.paidPaisa),
-    rupees(invoice.outstandingPaisa),
-  ]);
+  const rows = invoices
+    .map(toInvoiceView)
+    .map((invoice) => [
+      invoice.invoiceNumber,
+      invoice.rollNumber,
+      invoice.studentName,
+      invoice.programCode,
+      invoice.semesterNumber,
+      invoice.dueDate.slice(0, 10),
+      invoice.status,
+      rupees(invoice.totalPaisa),
+      rupees(invoice.finePaisa),
+      rupees(invoice.discountPaisa),
+      rupees(invoice.paidPaisa),
+      rupees(invoice.outstandingPaisa),
+    ]);
   return [header, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n');
 }

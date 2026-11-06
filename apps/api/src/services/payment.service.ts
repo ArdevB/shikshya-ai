@@ -147,8 +147,7 @@ async function applyVerification(paymentId: string, result: VerifyResult) {
   }
 
   // The amount must match exactly. A mismatch may be fraud, and service must stop.
-  const amountMismatch =
-    result.state === 'SUCCESS' && result.amountPaisa !== payment.amountPaisa;
+  const amountMismatch = result.state === 'SUCCESS' && result.amountPaisa !== payment.amountPaisa;
 
   if (result.state === 'FAILED' || amountMismatch) {
     const changed = await prisma.payment.updateMany({

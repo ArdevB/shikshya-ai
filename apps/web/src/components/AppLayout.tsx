@@ -13,8 +13,10 @@ import {
   ChevronDown,
   ClipboardCheck,
   ClipboardList,
+  Coins,
   DoorOpen,
   FileCheck2,
+  Files,
   GraduationCap,
   KeyRound,
   LayoutDashboard,
@@ -22,12 +24,15 @@ import {
   LogOut,
   Menu,
   PartyPopper,
+  Receipt,
   School,
+  Settings,
   Table2,
   User,
   UserCog,
   Users,
   UsersRound,
+  Wallet,
   X,
   type LucideIcon,
 } from 'lucide-react';
@@ -36,6 +41,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { useCurrentUser, useAuth } from '@/auth/AuthContext';
 import { roleLabel } from '@/auth/roles';
 import { Logo } from '@/components/Logo';
+import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -66,9 +72,25 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/events', label: 'Events', icon: PartyPopper },
 ];
 
+const FINANCE_NAV: NavItem[] = [
+  { to: '/finance', label: 'Fees dashboard', icon: Wallet, end: true },
+  { to: '/finance/invoices', label: 'Invoices', icon: Files },
+  { to: '/finance/payments', label: 'Payments', icon: Receipt },
+  { to: '/finance/setup', label: 'Fee setup', icon: Coins },
+];
+
 const NAV_BY_ROLE: Partial<Record<Role, NavItem[]>> = {
-  SUPER_ADMIN: ADMIN_NAV,
-  ADMIN: ADMIN_NAV,
+  SUPER_ADMIN: [
+    ...ADMIN_NAV,
+    ...FINANCE_NAV,
+    { to: '/admin/settings', label: 'Institution settings', icon: Settings },
+  ],
+  ADMIN: [...ADMIN_NAV, ...FINANCE_NAV],
+  ACCOUNTANT: [
+    ...FINANCE_NAV,
+    { to: '/finance/notices', label: 'Notices', icon: Bell, badge: 'notices' },
+    { to: '/finance/events', label: 'Events', icon: PartyPopper },
+  ],
   TEACHER: [
     { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
     { to: '/teacher/classes', label: 'My classes', icon: Users },
@@ -89,6 +111,7 @@ const NAV_BY_ROLE: Partial<Record<Role, NavItem[]>> = {
     { to: '/student/results', label: 'My results', icon: Award },
     { to: '/student/assignments', label: 'Assignments', icon: ClipboardList },
     { to: '/student/materials', label: 'Materials', icon: BookOpenText },
+    { to: '/student/fees', label: 'Fees', icon: Wallet },
     { to: '/student/notices', label: 'Notices', icon: Bell, badge: 'notices' },
     { to: '/student/events', label: 'Events', icon: PartyPopper },
   ],
@@ -99,6 +122,7 @@ const NAV_BY_ROLE: Partial<Record<Role, NavItem[]>> = {
     { to: '/parent/results', label: 'Results', icon: Award },
     { to: '/parent/assignments', label: 'Assignments', icon: ClipboardList },
     { to: '/parent/materials', label: 'Materials', icon: BookOpenText },
+    { to: '/parent/fees', label: 'Fees', icon: Wallet },
     { to: '/parent/notices', label: 'Notices', icon: Bell, badge: 'notices' },
     { to: '/parent/events', label: 'Events', icon: PartyPopper },
   ],
@@ -189,6 +213,11 @@ function UserMenu() {
             </Link>
           </DropdownMenu.Item>
           <DropdownMenu.Item asChild className={itemClass}>
+            <Link to="/notifications/preferences">
+              <Bell className="size-4" aria-hidden /> Notification settings
+            </Link>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item asChild className={itemClass}>
             <Link to="/change-password">
               <KeyRound className="size-4" aria-hidden /> Change password
             </Link>
@@ -255,7 +284,10 @@ export function AppLayout() {
           >
             <Menu className="[&]:size-6" />
           </Button>
-          <UserMenu />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <UserMenu />
+          </div>
         </header>
         <main className="flex-1 p-4 md:p-8">
           <div className="mx-auto max-w-6xl">

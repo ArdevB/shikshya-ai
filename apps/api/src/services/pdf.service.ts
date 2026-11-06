@@ -24,7 +24,10 @@ const DEFAULT_INSTITUTION: Institution = {
 };
 
 export async function getInstitution(): Promise<Institution> {
-  return (await prisma.institutionSettings.findUnique({ where: { id: 'default' } })) ?? DEFAULT_INSTITUTION;
+  return (
+    (await prisma.institutionSettings.findUnique({ where: { id: 'default' } })) ??
+    DEFAULT_INSTITUTION
+  );
 }
 
 export function saveInstitution(body: InstitutionSettingsBody) {

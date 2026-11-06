@@ -47,11 +47,7 @@ export function invoiceHtml(institution: Institution, invoice: InvoiceView) {
   );
 }
 
-export function receiptHtml(
-  institution: Institution,
-  payment: PaymentView,
-  invoice: InvoiceView,
-) {
+export function receiptHtml(institution: Institution, payment: PaymentView, invoice: InvoiceView) {
   return documentPage(
     institution,
     `Receipt ${payment.receiptNumber ?? ''}`,

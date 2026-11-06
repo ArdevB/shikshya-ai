@@ -1,12 +1,13 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthContext';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
-import { ADMIN_ROLES, homePathFor } from '@/auth/roles';
+import { ADMIN_ROLES, FINANCE_ROLES, homePathFor } from '@/auth/roles';
 import { AppLayout } from '@/components/AppLayout';
 import { FullPageSpinner } from '@/components/feedback';
 import { CoursesPage } from '@/pages/admin/CoursesPage';
 import { DepartmentsPage } from '@/pages/admin/DepartmentsPage';
 import { ExamDetailPage, ExamsPage } from '@/pages/admin/ExamsPage';
+import { InstitutionSettingsPage } from '@/pages/admin/InstitutionSettingsPage';
 import { OfferingsPage } from '@/pages/admin/OfferingsPage';
 import { ParentsPage } from '@/pages/admin/ParentsPage';
 import { ProgramsPage } from '@/pages/admin/ProgramsPage';
@@ -16,6 +17,9 @@ import { StudentsPage } from '@/pages/admin/StudentsPage';
 import { TeachersPage } from '@/pages/admin/TeachersPage';
 import { TimetableEditorPage } from '@/pages/admin/TimetableEditorPage';
 import { ChangePasswordPage } from '@/pages/ChangePasswordPage';
+import { FeeSetupPage } from '@/pages/finance/FeeSetupPage';
+import { FinanceDashboardPage, PaymentsPage } from '@/pages/finance/FinanceDashboardPage';
+import { InvoicesPage } from '@/pages/finance/InvoicesPage';
 import { LoginPage } from '@/pages/LoginPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ParentAttendancePage } from '@/pages/parent/ParentAttendancePage';
@@ -28,6 +32,9 @@ import {
   TeacherDashboardPage,
 } from '@/pages/shared/Dashboards';
 import { EventsPage } from '@/pages/shared/EventsPage';
+import { ParentFeesPage, PaymentResultPage, StudentFeesPage } from '@/pages/shared/FeesPage';
+import { NotificationPreferencesPage } from '@/pages/shared/NotificationPreferencesPage';
+import { VerifyStudentPage } from '@/pages/shared/VerifyStudentPage';
 import {
   ParentMaterialsPage,
   StudentMaterialsPage,
@@ -63,11 +70,27 @@ export function App() {
     <Routes>
       <Route path="/" element={<RoleHome />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/verify/:id/:token" element={<VerifyStudentPage />} />
+      <Route path="/payments/result" element={<PaymentResultPage />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/notifications/preferences" element={<NotificationPreferencesPage />} />
+
+          <Route path="/finance" element={<ProtectedRoute roles={FINANCE_ROLES} />}>
+            <Route index element={<FinanceDashboardPage />} />
+            <Route path="invoices" element={<InvoicesPage />} />
+            <Route path="payments" element={<PaymentsPage />} />
+            <Route path="setup" element={<FeeSetupPage />} />
+            <Route path="notices" element={<NoticesPage />} />
+            <Route path="events" element={<EventsPage />} />
+          </Route>
+
+          <Route path="/admin/settings" element={<ProtectedRoute roles={['SUPER_ADMIN']} />}>
+            <Route index element={<InstitutionSettingsPage />} />
+          </Route>
 
           <Route path="/admin" element={<ProtectedRoute roles={ADMIN_ROLES} />}>
             <Route index element={<AdminDashboardPage />} />
@@ -110,6 +133,7 @@ export function App() {
             <Route path="results" element={<StudentResultsPage />} />
             <Route path="assignments" element={<StudentAssignmentsPage />} />
             <Route path="materials" element={<StudentMaterialsPage />} />
+            <Route path="fees" element={<StudentFeesPage />} />
             <Route path="notices" element={<NoticesPage />} />
             <Route path="events" element={<EventsPage />} />
           </Route>
@@ -128,6 +152,7 @@ export function App() {
             <Route path="results" element={<ParentResultsPage />} />
             <Route path="assignments" element={<ParentAssignmentsPage />} />
             <Route path="materials" element={<ParentMaterialsPage />} />
+            <Route path="fees" element={<ParentFeesPage />} />
             <Route path="notices" element={<NoticesPage />} />
             <Route path="events" element={<EventsPage />} />
           </Route>

@@ -43,10 +43,7 @@ export interface InvoiceAmounts {
 
 /** What is still owed. Never negative, even if a discount exceeds the balance. */
 export const outstandingPaisa = (invoice: InvoiceAmounts) =>
-  Math.max(
-    0,
-    invoice.totalPaisa + invoice.finePaisa - invoice.discountPaisa - invoice.paidPaisa,
-  );
+  Math.max(0, invoice.totalPaisa + invoice.finePaisa - invoice.discountPaisa - invoice.paidPaisa);
 
 export interface FineRuleInput {
   type: FineType;

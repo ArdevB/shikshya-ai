@@ -156,7 +156,11 @@ describe('real-time delivery', () => {
   });
 
   const open = (token: unknown) => {
-    const socket = connect(url, { auth: { token }, transports: ['websocket'], reconnection: false });
+    const socket = connect(url, {
+      auth: { token },
+      transports: ['websocket'],
+      reconnection: false,
+    });
     sockets.push(socket);
     return socket;
   };

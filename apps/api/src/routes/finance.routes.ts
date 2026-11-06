@@ -30,11 +30,20 @@ const FINANCE_ROLES = ['ACCOUNTANT', ...ADMIN_ROLES] as const;
 const staffOnly = () => requireRole(...FINANCE_ROLES);
 
 export const feeHeadRoutes = () =>
-  crudRouter(finance.feeHeads, paginationQuery, feeHeadBody, { writers: FINANCE_ROLES, readers: FINANCE_ROLES });
+  crudRouter(finance.feeHeads, paginationQuery, feeHeadBody, {
+    writers: FINANCE_ROLES,
+    readers: FINANCE_ROLES,
+  });
 export const feeStructureRoutes = () =>
-  crudRouter(finance.feeStructures, paginationQuery, feeStructureBody, { writers: FINANCE_ROLES, readers: FINANCE_ROLES });
+  crudRouter(finance.feeStructures, paginationQuery, feeStructureBody, {
+    writers: FINANCE_ROLES,
+    readers: FINANCE_ROLES,
+  });
 export const fineRuleRoutes = () =>
-  crudRouter(finance.fineRules, paginationQuery, fineRuleBody, { writers: FINANCE_ROLES, readers: FINANCE_ROLES });
+  crudRouter(finance.fineRules, paginationQuery, fineRuleBody, {
+    writers: FINANCE_ROLES,
+    readers: FINANCE_ROLES,
+  });
 
 export function invoiceRoutes() {
   const router = Router();
@@ -213,10 +222,7 @@ export function notificationRoutes() {
   const router = Router();
   router.get('/', async (req, res) => {
     res.json(
-      await notifications.listNotifications(
-        currentUser(req).id,
-        parseQuery(req, paginationQuery),
-      ),
+      await notifications.listNotifications(currentUser(req).id, parseQuery(req, paginationQuery)),
     );
   });
   router.get('/unread-count', async (req, res) => {

@@ -52,7 +52,9 @@ export function marksheetHtml(
 export function transcriptHtml(institution: Institution, results: StudentResults) {
   const semesters = results.semesters
     .map(
-      (semester) => `<h2 style="font-size:14px;margin:18px 0 8px">Semester ${esc(semester.semesterNumber)}
+      (
+        semester,
+      ) => `<h2 style="font-size:14px;margin:18px 0 8px">Semester ${esc(semester.semesterNumber)}
         <span class="muted" style="font-weight:400;font-size:12px">${esc(semester.academicYear)}, GPA ${esc(semester.gpa.toFixed(2))}, ${esc(semester.status)}</span></h2>
         ${courseTable(semester)}`,
     )

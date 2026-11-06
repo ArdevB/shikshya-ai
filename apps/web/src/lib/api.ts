@@ -20,6 +20,8 @@ export const setAccessToken = (token: string | null) => {
   accessToken = token;
 };
 
+export const getAccessToken = () => accessToken;
+
 let onSessionExpired: () => void = () => undefined;
 export const setSessionExpiredHandler = (handler: () => void) => {
   onSessionExpired = handler;

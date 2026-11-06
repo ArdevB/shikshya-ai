@@ -60,6 +60,11 @@ interface ResourceFormProps {
   onClose: () => void;
   /** Adjusts raw form values before validation, for example local times to ISO. */
   preprocess?: (values: Record<string, unknown>) => Record<string, unknown>;
+  /**
+   * Validate, but submit what was typed rather than the parsed result. For fields the schema
+   * transforms, such as rupees into paisa, which the API must do itself.
+   */
+  sendRawValues?: boolean;
 }
 
 export function ResourceForm({
@@ -73,11 +78,13 @@ export function ResourceForm({
   onSubmit,
   onClose,
   preprocess,
+  sendRawValues = false,
 }: ResourceFormProps) {
   const {
     register,
     handleSubmit,
     setError,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<FieldValues>({
     // The resolver's generics cannot follow a schema chosen at runtime.
@@ -92,7 +99,7 @@ export function ResourceForm({
 
   const submit = handleSubmit(async (values) => {
     try {
-      await onSubmit(values);
+      await onSubmit(sendRawValues ? getValues() : values);
       onClose();
     } catch (error) {
       applyServerErrors(error, setError);
@@ -228,6 +235,8 @@ export interface ResourceManagerProps<T> {
   rowActions?: (row: T) => ReactNode;
   /** Called with the API's response after creating, for example to show a temporary password. */
   onCreated?: (result: unknown) => void;
+  /** See ResourceFormProps. */
+  sendRawValues?: boolean;
   emptyDescription?: string;
 }
 
@@ -249,6 +258,7 @@ export function ResourceManager<T>({
   rowActions,
   onCreated,
   emptyDescription,
+  sendRawValues,
 }: ResourceManagerProps<T>) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
@@ -352,6 +362,7 @@ export function ResourceManager<T>({
           defaultValues={emptyValues}
           submitLabel={`Add ${noun}`}
           isEditing={false}
+          sendRawValues={sendRawValues}
           onClose={() => setCreating(false)}
           onSubmit={async (values) => {
             const result = await api.post(path, values);
@@ -370,6 +381,7 @@ export function ResourceManager<T>({
           defaultValues={toFormValues(editing)}
           submitLabel="Save changes"
           isEditing
+          sendRawValues={sendRawValues}
           onClose={() => setEditing(null)}
           onSubmit={async (values) => {
             await api.put(`${path}/${rowKey(editing)}`, values);

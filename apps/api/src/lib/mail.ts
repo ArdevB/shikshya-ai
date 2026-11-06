@@ -23,13 +23,13 @@ export function setMailTransport(next: Transporter) {
 }
 
 const escapeHtml = (text: string) =>
-  text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export function notificationEmailHtml(input: { title: string; body: string; link?: string | null }) {
+export function notificationEmailHtml(input: {
+  title: string;
+  body: string;
+  link?: string | null;
+}) {
   const button = input.link
     ? `<p style="margin:24px 0 0"><a href="${escapeHtml(`${env.WEB_ORIGIN}${input.link}`)}" style="background:#0593C6;color:#FCFFFF;padding:10px 18px;border-radius:8px;text-decoration:none;font-weight:600">Open Shikshya</a></p>`
     : '';

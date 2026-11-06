@@ -10,19 +10,17 @@ import { dateString, paginationQuery } from './common.js';
 
 /** Staff type rupees, the database stores paisa. */
 const rupees = (label = 'an amount') =>
-  z
-    .union([z.string(), z.number()])
-    .transform((value, ctx) => {
-      const paisa = rupeesToPaisa(value);
-      if (paisa === null) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `Enter ${label} in rupees, like 1500 or 1500.50`,
-        });
-        return z.NEVER;
-      }
-      return paisa;
-    });
+  z.union([z.string(), z.number()]).transform((value, ctx) => {
+    const paisa = rupeesToPaisa(value);
+    if (paisa === null) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Enter ${label} in rupees, like 1500 or 1500.50`,
+      });
+      return z.NEVER;
+    }
+    return paisa;
+  });
 
 const positiveRupees = rupees().refine((paisa) => paisa > 0, 'Must be more than 0');
 

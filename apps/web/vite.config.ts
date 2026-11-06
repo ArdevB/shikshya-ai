@@ -19,6 +19,7 @@ export default defineConfig({
     // The browser only talks to one origin, which keeps the refresh cookie simple.
     proxy: {
       '/api': 'http://localhost:4000',
+      '/socket.io': { target: 'http://localhost:4000', ws: true },
     },
   },
   test: {

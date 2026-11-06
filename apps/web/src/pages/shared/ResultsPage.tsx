@@ -1,17 +1,19 @@
 import type { SemesterResult, StudentResults } from '@shikshya/shared';
 import { useQuery } from '@tanstack/react-query';
-import { GraduationCap } from 'lucide-react';
+import { Download, GraduationCap } from 'lucide-react';
 import { useCurrentUser } from '@/auth/AuthContext';
 import { TrendLineChart } from '@/components/Charts';
 import { DataTable } from '@/components/DataTable';
 import { EmptyState, ErrorState, LoadingRows } from '@/components/feedback';
 import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
+import { downloadOrToast } from '@/pages/finance/InvoicesPage';
 import { ChildSwitcher, useActiveChild } from './ChildSwitcher';
 
-function SemesterCard({ semester }: { semester: SemesterResult }) {
+function SemesterCard({ semester, studentId }: { semester: SemesterResult; studentId: string }) {
   return (
     <Card>
       <CardHeader className="flex-row items-start justify-between gap-3">
@@ -46,6 +48,19 @@ function SemesterCard({ semester }: { semester: SemesterResult }) {
             { header: 'Grade point', cell: (row) => row.gradePoint.toFixed(1) },
           ]}
         />
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-3"
+          onClick={() =>
+            void downloadOrToast(
+              `/pdf/marksheet/${studentId}/${semester.semesterId}`,
+              `marksheet-semester-${semester.semesterNumber}.pdf`,
+            )
+          }
+        >
+          <Download /> Marksheet
+        </Button>
       </CardContent>
     </Card>
   );
@@ -83,6 +98,24 @@ function ResultsView({ studentId }: { studentId: string }) {
               Across {semesters.length} published{' '}
               {semesters.length === 1 ? 'semester' : 'semesters'}
             </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  void downloadOrToast(`/pdf/transcript/${studentId}`, 'transcript.pdf')
+                }
+              >
+                <Download /> Transcript
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void downloadOrToast(`/pdf/id-card/${studentId}`, 'id-card.pdf')}
+              >
+                <Download /> ID card
+              </Button>
+            </div>
           </CardContent>
         </Card>
         <Card>
@@ -102,7 +135,7 @@ function ResultsView({ studentId }: { studentId: string }) {
         </Card>
       </div>
       {[...semesters].reverse().map((semester) => (
-        <SemesterCard key={semester.resultId} semester={semester} />
+        <SemesterCard key={semester.resultId} semester={semester} studentId={studentId} />
       ))}
     </div>
   );

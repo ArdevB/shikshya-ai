@@ -16,7 +16,10 @@ const envSchema = z.object({
   ESEWA_PRODUCT_CODE: z.string().default('EPAYTEST'),
   ESEWA_SECRET_KEY: z.string().default('8gBm/:&EnhH.1/q'),
   ESEWA_FORM_URL: z.string().url().default('https://rc-epay.esewa.com.np/api/epay/main/v2/form'),
-  ESEWA_STATUS_URL: z.string().url().default('https://rc.esewa.com.np/api/epay/transaction/status/'),
+  ESEWA_STATUS_URL: z
+    .string()
+    .url()
+    .default('https://rc.esewa.com.np/api/epay/transaction/status/'),
 
   // From test-admin.khalti.com for testing. With no key, Khalti says it is not set up.
   KHALTI_SECRET_KEY: z.string().optional(),

@@ -6,7 +6,7 @@ import {
   type StudentImportResult,
 } from '@shikshya/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Download, GraduationCap, Upload } from 'lucide-react';
+import { Camera, Download, GraduationCap, Upload } from 'lucide-react';
 import { useState, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
 import { CredentialsDialog, type Credential } from '@/components/CredentialsDialog';
@@ -20,6 +20,7 @@ import { api, ApiError } from '@/lib/api';
 import { personName, sectionLabel, type Program, type Section, type Student } from '@/lib/types';
 import { useOptions } from '@/lib/useOptions';
 import { toDateInput } from '@/lib/utils';
+import { readImageFile } from './InstitutionSettingsPage';
 
 const SAMPLE_ROW = [
   'student@example.com',
@@ -211,6 +212,31 @@ export function StudentsPage() {
         }
         rowKey={(row) => row.id}
         rowLabel={(row) => personName(row.user)}
+        rowActions={(row) => (
+          <Button
+            asChild
+            variant="ghost"
+            size="icon"
+            aria-label={`Set a photo for ${personName(row.user)}`}
+          >
+            <label className="cursor-pointer">
+              <Camera />
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="sr-only"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  readImageFile(file)
+                    .then((photoDataUrl) => api.put(`/students/${row.id}/photo`, { photoDataUrl }))
+                    .then(() => toast.success('Photo saved. It appears on the ID card.'))
+                    .catch((error: Error) => toast.error(error.message));
+                }}
+              />
+            </label>
+          </Button>
+        )}
         columns={[
           { header: 'Roll no.', cell: (row) => row.rollNumber },
           { header: 'Name', cell: (row) => personName(row.user) },
