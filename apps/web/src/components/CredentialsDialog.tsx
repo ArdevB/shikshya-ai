@@ -35,7 +35,7 @@ export function CredentialsDialog({
             again, and a new password must be chosen at first login.
           </DialogDescription>
         </div>
-        <ul className="max-h-64 divide-y overflow-y-auto rounded-md border text-sm">
+        <ul className="max-h-64 divide-y overflow-y-auto rounded-xl border text-sm">
           {credentials.map((credential) => (
             <li key={credential.email} className="p-3">
               <p className="break-all text-muted-foreground">{credential.email}</p>

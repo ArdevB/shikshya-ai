@@ -166,7 +166,7 @@ export function NoticesPage() {
       ) : query.data.data.length === 0 ? (
         <EmptyState icon={Bell} title="No notices" description="New notices will appear here." />
       ) : (
-        <div className="space-y-3">
+        <div className="stagger-children space-y-3">
           {query.data.data.map((notice) => (
             <Card key={notice.id} className={cn(!notice.isRead && 'border-l-4 border-l-accent')}>
               <CardContent className="space-y-2 pt-5">

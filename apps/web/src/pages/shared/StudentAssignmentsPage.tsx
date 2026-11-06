@@ -185,7 +185,7 @@ function AssignmentList({ studentId, canSubmit }: { studentId: string; canSubmit
   }
   return (
     <>
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="stagger-children grid gap-4 lg:grid-cols-2">
         {query.data.map((assignment) => (
           <AssignmentCard
             key={assignment.id}

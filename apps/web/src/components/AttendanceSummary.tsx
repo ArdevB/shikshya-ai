@@ -6,6 +6,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { AlertTriangle, CalendarCheck } from 'lucide-react';
 import { EmptyState, ErrorState, LoadingRows } from '@/components/feedback';
+import { AnimatedValue, ProgressRing } from '@/components/motion';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { api } from '@/lib/api';
@@ -14,53 +15,34 @@ import { cn } from '@/lib/utils';
 function CourseCard({ course }: { course: StudentCourseAttendance }) {
   const percentage = course.percentage;
   return (
-    <Card>
-      <CardContent className="space-y-3 pt-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-muted-foreground">{course.courseCode}</p>
-            <h3 className="font-semibold leading-snug">{course.courseTitle}</h3>
-            <p className="text-sm text-muted-foreground">{course.teacherName}</p>
-          </div>
-          <p
+    <Card className="card-lift">
+      <CardContent className="flex items-center gap-4 pt-5">
+        <ProgressRing
+          percent={percentage}
+          label={`${course.courseTitle} attendance, ${ATTENDANCE_THRESHOLD_PERCENT}% required`}
+          tone={course.belowThreshold ? 'accent' : 'primary'}
+          markAt={ATTENDANCE_THRESHOLD_PERCENT}
+        >
+          <span
             className={cn(
-              'font-heading text-2xl font-bold',
+              'font-heading text-sm font-bold',
               course.belowThreshold ? 'text-accent-dark' : 'text-primary-dark',
             )}
           >
-            {percentage === null ? '–' : `${percentage}%`}
-          </p>
-        </div>
+            {percentage === null ? '–' : <AnimatedValue value={`${Math.round(percentage)}%`} />}
+          </span>
+        </ProgressRing>
 
-        <div
-          role="progressbar"
-          aria-label={`${course.courseTitle} attendance`}
-          aria-valuenow={percentage ?? 0}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          className="relative h-2.5 overflow-hidden rounded-full bg-muted"
-        >
-          <div
-            className={cn(
-              'h-full rounded-full',
-              course.belowThreshold ? 'bg-accent' : 'bg-primary',
-            )}
-            style={{ width: `${percentage ?? 0}%` }}
-          />
-          {/* Marks the 75% requirement on the bar. */}
-          <div
-            className="absolute inset-y-0 w-0.5 bg-foreground/50"
-            style={{ left: `${ATTENDANCE_THRESHOLD_PERCENT}%` }}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-          <span className="text-muted-foreground">
+        <div className="min-w-0 flex-1 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground">{course.courseCode}</p>
+          <h3 className="font-semibold leading-snug">{course.courseTitle}</h3>
+          <p className="text-sm text-muted-foreground">{course.teacherName}</p>
+          <p className="text-sm text-muted-foreground">
             {percentage === null
               ? 'No classes recorded yet'
-              : `Attended ${course.attended} of ${course.total} classes`}
+              : `Attended ${course.attended} of ${course.total} classes (${percentage}%)`}
             {course.excused > 0 && `, ${course.excused} excused`}
-          </span>
+          </p>
           {course.belowThreshold && (
             <Badge variant="warning">
               <AlertTriangle className="size-3" aria-hidden /> Below {ATTENDANCE_THRESHOLD_PERCENT}%
@@ -100,7 +82,7 @@ export function AttendanceSummary({ studentId }: { studentId: string }) {
       {below > 0 && (
         <div
           role="status"
-          className="flex items-start gap-3 rounded-lg border border-accent/40 bg-accent-soft p-4 text-sm"
+          className="flex animate-rise items-start gap-3 rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm"
         >
           <AlertTriangle className="mt-0.5 size-5 shrink-0 text-accent-dark" aria-hidden />
           <p>
@@ -109,7 +91,7 @@ export function AttendanceSummary({ studentId }: { studentId: string }) {
           </p>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="stagger-children grid gap-4 md:grid-cols-2">
         {query.data.courses.map((course) => (
           <CourseCard key={course.offeringId} course={course} />
         ))}

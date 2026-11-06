@@ -82,7 +82,7 @@ function MarkRowEditor({
   const locked = sheet.isPublished;
 
   return (
-    <li className="grid grid-cols-[5.5rem_1fr] items-center gap-x-3 gap-y-2 rounded-lg border p-3 sm:grid-cols-[1fr_5.5rem_auto]">
+    <li className="grid grid-cols-[5.5rem_1fr] items-center gap-x-3 gap-y-2 rounded-2xl border bg-card p-3 shadow-soft sm:grid-cols-[1fr_5.5rem_auto]">
       <div className="col-span-2 min-w-0 sm:col-span-1">
         <p className="font-medium">{row.studentName}</p>
         <p className="text-sm text-muted-foreground">{row.rollNumber}</p>
@@ -124,7 +124,9 @@ function MarkRowEditor({
           {state === 'saving' && (
             <Loader2 className="size-4 animate-spin text-muted-foreground" aria-label="Saving" />
           )}
-          {state === 'saved' && <Check className="size-4 text-primary-dark" aria-label="Saved" />}
+          {state === 'saved' && (
+            <Check className="size-4 animate-pop text-primary-dark" aria-label="Saved" />
+          )}
           {state === 'error' && (
             <TriangleAlert className="size-4 text-destructive" aria-label="Not saved" />
           )}
@@ -177,7 +179,7 @@ function MarkGrid({ subjectId }: { subjectId: string }) {
           This exam is published, so marks are read-only. An admin can unlock it.
         </p>
       )}
-      <ul className="space-y-2">
+      <ul className="stagger-children space-y-2">
         {sheet.rows.map((row, index) => (
           <MarkRowEditor
             key={row.studentId}

@@ -93,7 +93,7 @@ export function TimetableEditorPage() {
   };
 
   const renderEntry = (entry: TimetableEntryView) => (
-    <div className="flex items-start gap-1 rounded-md border-l-4 border-primary bg-primary-soft py-1.5 pl-2 pr-1 text-xs leading-snug">
+    <div className="flex items-start gap-1 rounded-lg border-l-4 border-primary bg-primary-soft py-1.5 pl-2 pr-1 text-xs leading-snug">
       <div className="min-w-0 flex-1">
         <p className="font-semibold">{entry.courseCode}</p>
         <p className="truncate text-muted-foreground">{entry.roomName}</p>
@@ -167,7 +167,7 @@ export function TimetableEditorPage() {
                       }}
                       onClick={() => setSelectedOffering(offering.id)}
                       className={cn(
-                        'min-h-10 cursor-grab rounded-md border px-3 py-1.5 text-left text-xs transition-colors hover:bg-primary-soft',
+                        'min-h-10 cursor-grab rounded-xl border bg-card px-3 py-1.5 text-left text-xs shadow-sm transition-[transform,background-color,border-color] duration-200 ease-spring hover:-translate-y-0.5 hover:bg-primary-soft active:scale-[0.97] active:cursor-grabbing',
                         selectedOffering === offering.id &&
                           'border-accent bg-accent-soft hover:bg-accent-soft',
                       )}

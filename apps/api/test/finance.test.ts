@@ -727,6 +727,61 @@ describe('paying with Khalti', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('shows the customer Khalti’s own reason when it refuses', async () => {
+    const invoice = await freshInvoice();
+    fetchMock.mockResolvedValueOnce(
+      json(400, { amount: ['Amount must be less than 200.'], error_key: 'validation_error' }),
+    );
+    const response = await initiate(invoice.id, 'KHALTI');
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain('Amount must be less than 200.');
+  });
+
+  it('says so plainly when the merchant key is wrong', async () => {
+    const invoice = await freshInvoice();
+    fetchMock.mockResolvedValueOnce(json(401, { detail: 'Invalid token.', status_code: 401 }));
+    const response = await initiate(invoice.id, 'KHALTI');
+    expect(response.status).toBe(502);
+    expect(response.body.error.message).toContain('did not accept the merchant key');
+  });
+
+  it('leaves out customer details unless they are complete', async () => {
+    const started = async () => {
+      const invoice = await freshInvoice();
+      fetchMock.mockResolvedValueOnce(
+        json(200, { pidx: 'P', payment_url: 'https://test-pay.khalti.com/?pidx=P' }),
+      );
+      await initiate(invoice.id, 'KHALTI');
+      return JSON.parse(String(fetchMock.mock.lastCall![1]!.body)) as Record<string, unknown>;
+    };
+
+    expect((await started()).customer_info).toBeUndefined();
+
+    await prisma.user.update({
+      where: { id: fx.studentA.userId },
+      data: { phone: '980-000 0000' },
+    });
+    expect((await started()).customer_info).toMatchObject({ phone: '9800000000' });
+    await prisma.user.update({ where: { id: fx.studentA.userId }, data: { phone: null } });
+  });
+
+  it('returns the customer to the site even if checking the payment blows up', async () => {
+    const { paymentId } = await started();
+    fetchMock.mockImplementationOnce(() => {
+      throw new TypeError('unexpected');
+    });
+    const response = await khaltiCallback(paymentId);
+    expect(response.status).toBe(302);
+    expect(response.headers.location).toContain(paymentId);
+  });
+
+  it('tells the payment screen which gateways can be used', async () => {
+    const response = await api().get(`${V1}/payments/gateways`).set(bearer(studentA));
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ ESEWA: true, KHALTI: true });
+    expect((await api().get(`${V1}/payments/gateways`).set(bearer(teacher))).status).toBe(403);
+  });
+
   it('reports when Khalti refuses to start', async () => {
     const invoice = await freshInvoice();
     fetchMock.mockResolvedValueOnce(json(400, { amount: ['Invalid'] }));

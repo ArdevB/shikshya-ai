@@ -3,9 +3,9 @@ import { UsersRound } from 'lucide-react';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '@/auth/AuthContext';
 import { EmptyState, ErrorState, LoadingRows } from '@/components/feedback';
-import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import type { OwnChild } from '@/lib/types';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 
 interface ActiveChild {
   selectedId: string | null;
@@ -42,19 +42,13 @@ export function useActiveChild() {
     active: list.find((child) => child.student.id === activeId),
     status: query,
     children: list.length > 1 && (
-      <div role="tablist" aria-label="Choose a child" className="mb-4 flex flex-wrap gap-2">
-        {list.map(({ student }) => (
-          <Button
-            key={student.id}
-            role="tab"
-            aria-selected={student.id === activeId}
-            variant={student.id === activeId ? 'default' : 'outline'}
-            onClick={() => context.select(student.id)}
-          >
-            {student.user.firstName}
-          </Button>
-        ))}
-      </div>
+      <SegmentedTabs
+        label="Choose a child"
+        className="mb-4"
+        value={activeId ?? ''}
+        onChange={context.select}
+        tabs={list.map(({ student }) => ({ value: student.id, label: student.user.firstName }))}
+      />
     ),
   };
 }

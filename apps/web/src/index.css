@@ -8,6 +8,7 @@
 /*
  * Brand tokens, as RGB channels so Tailwind's opacity modifiers work.
  * Core palette: Sky Blue #0593C6, Hot Pink #D83995, White #FCFFFF.
+ * The -strong shades carry white button text at a readable 4.5:1. src/test/tokens.test.ts checks this.
  */
 @layer base {
   :root {
@@ -17,11 +18,13 @@
 
     --primary: 5 147 198; /* Sky Blue #0593C6 */
     --primary-foreground: 252 255 255;
+    --primary-strong: 4 126 169; /* #047EA9: buttons, white text */
     --primary-dark: 4 114 154; /* Sky Dark #04729A: small text, hover */
     --primary-soft: 231 245 250; /* Tint of Sky Blue for backgrounds */
 
     --accent: 216 57 149; /* Hot Pink #D83995 */
     --accent-foreground: 252 255 255;
+    --accent-strong: 204 47 139; /* #CC2F8B: buttons, white text */
     --accent-dark: 176 36 118; /* Pink Dark #B02476: small text */
     --accent-soft: 252 236 245; /* Tint of Hot Pink for backgrounds */
 
@@ -30,15 +33,29 @@
     --border: 213 230 237; /* Border #D5E6ED */
     --destructive: 192 38 56; /* Reserved for errors and delete actions */
 
-    --radius: 0.625rem;
+    --radius: 0.875rem;
+    --sidebar-width: 17rem;
+
+    /* One curve for almost everything, so the whole app moves the same way. */
+    --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   * {
     @apply border-border;
   }
 
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply bg-background font-sans text-foreground antialiased;
+    /* A faint wash of the two brand colours behind everything. */
+    background-image:
+      radial-gradient(60rem 36rem at 100% -8%, rgb(var(--primary) / 0.08), transparent 62%),
+      radial-gradient(48rem 34rem at -6% 108%, rgb(var(--accent) / 0.06), transparent 62%);
+    background-attachment: fixed;
   }
 
   h1,
@@ -48,7 +65,255 @@
     @apply font-heading tracking-tight;
   }
 
+  ::selection {
+    background: rgb(var(--accent) / 0.22);
+  }
+
   :focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  /* Thin, quiet scrollbars that only stand out on hover. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--border)) transparent;
+  }
+}
+
+@layer components {
+  /* Children appear one after another. CSS only, so it stays cheap on long lists. */
+  .stagger-children > * {
+    @apply animate-rise;
+  }
+  .stagger-children > *:nth-child(2) {
+    animation-delay: 50ms;
+  }
+  .stagger-children > *:nth-child(3) {
+    animation-delay: 100ms;
+  }
+  .stagger-children > *:nth-child(4) {
+    animation-delay: 150ms;
+  }
+  .stagger-children > *:nth-child(5) {
+    animation-delay: 200ms;
+  }
+  .stagger-children > *:nth-child(6) {
+    animation-delay: 250ms;
+  }
+  .stagger-children > *:nth-child(7) {
+    animation-delay: 300ms;
+  }
+  .stagger-children > *:nth-child(8) {
+    animation-delay: 350ms;
+  }
+  .stagger-children > *:nth-child(n + 9) {
+    animation-delay: 400ms;
+  }
+
+  /* For cards you can click: they rise to meet the pointer. */
+  .card-lift {
+    transition:
+      transform 0.25s var(--ease-spring),
+      box-shadow 0.25s var(--ease-spring),
+      border-color 0.25s var(--ease-spring);
+  }
+  .card-lift:hover {
+    @apply border-primary/40 shadow-lifted;
+    transform: translateY(-3px);
+  }
+
+  .skeleton {
+    @apply animate-shimmer rounded-xl;
+    background-image: linear-gradient(
+      90deg,
+      rgb(var(--muted)) 0%,
+      rgb(var(--primary-soft)) 50%,
+      rgb(var(--muted)) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  .field {
+    @apply h-11 w-full rounded-xl border bg-card px-3.5 text-sm text-foreground shadow-sm placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50;
+    transition:
+      border-color 0.2s var(--ease-spring),
+      box-shadow 0.2s var(--ease-spring),
+      background-color 0.2s;
+  }
+  .field:hover:not(:disabled) {
+    @apply border-primary/50;
+  }
+  .field:focus-visible {
+    @apply border-primary ring-0 ring-offset-0;
+    box-shadow: 0 0 0 4px rgb(var(--primary) / 0.16);
+  }
+  .field[aria-invalid='true'] {
+    @apply border-destructive;
+    box-shadow: 0 0 0 4px rgb(var(--destructive) / 0.1);
+  }
+
+  /* A native select, so phones still open their own picker, with a matching arrow. */
+  .field-select {
+    @apply appearance-none pr-10;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%234A6472' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.875rem center;
+  }
+
+  /* Dialogs: centred on larger screens, a sheet rising from the bottom on phones. */
+  .dialog-overlay {
+    @apply fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm;
+  }
+  .dialog-overlay[data-state='open'] {
+    animation: fade-in 0.2s ease-out;
+  }
+  .dialog-overlay[data-state='closed'] {
+    animation: fade-out 0.16s ease-in both;
+  }
+
+  .dialog-content {
+    @apply fixed z-50 flex flex-col gap-4 overflow-y-auto border bg-card p-5 shadow-lifted;
+    left: 50%;
+    top: 50%;
+    width: calc(100% - 2rem);
+    max-width: 32rem;
+    max-height: 90dvh;
+    border-radius: 1.25rem;
+    transform: translate(-50%, -50%);
+  }
+  .dialog-content[data-state='open'] {
+    animation: dialog-in 0.32s var(--ease-spring);
+  }
+  .dialog-content[data-state='closed'] {
+    animation: dialog-out 0.16s ease-in both;
+  }
+
+  @media (max-width: 639px) {
+    .dialog-content {
+      left: 0;
+      top: auto;
+      bottom: 0;
+      width: 100%;
+      max-width: none;
+      max-height: 92dvh;
+      border-width: 1px 0 0;
+      border-radius: 1.5rem 1.5rem 0 0;
+      padding-top: 1.75rem;
+      padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+      transform: none;
+    }
+    .dialog-content::before {
+      content: '';
+      position: absolute;
+      top: 0.625rem;
+      left: 50%;
+      width: 2.5rem;
+      height: 0.25rem;
+      margin-left: -1.25rem;
+      border-radius: 999px;
+      background: rgb(var(--border));
+    }
+    .dialog-content[data-state='open'] {
+      animation: sheet-in 0.36s var(--ease-spring);
+    }
+    .dialog-content[data-state='closed'] {
+      animation: sheet-out 0.2s ease-in both;
+    }
+  }
+
+  /* The phone menu slides in from the side. */
+  .drawer-content {
+    @apply fixed inset-y-0 left-0 z-50 flex w-80 max-w-[86%] flex-col overflow-y-auto bg-background shadow-lifted;
+    border-radius: 0 1.25rem 1.25rem 0;
+  }
+  .drawer-content[data-state='open'] {
+    animation: drawer-in 0.34s var(--ease-spring);
+  }
+  .drawer-content[data-state='closed'] {
+    animation: drawer-out 0.2s ease-in both;
+  }
+
+  .menu-content {
+    @apply z-50 origin-[--radix-dropdown-menu-content-transform-origin] rounded-xl border bg-card shadow-lifted;
+  }
+  .menu-content[data-state='open'] {
+    animation: menu-in 0.2s var(--ease-spring);
+  }
+  .menu-content[data-state='closed'] {
+    animation: menu-out 0.12s ease-in both;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -46%) scale(0.96);
+  }
+}
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.98);
+  }
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+@keyframes drawer-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+}
+@keyframes menu-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+/*
+ * Anyone who asks their system for less motion gets it, everywhere at once. Things still appear
+ * and change, just without travelling across the screen. Motion components follow the same
+ * setting through <MotionConfig reducedMotion="user"> in main.tsx.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }

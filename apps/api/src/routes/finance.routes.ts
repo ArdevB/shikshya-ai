@@ -20,6 +20,7 @@ import { env } from '../config/env.js';
 import { ADMIN_ROLES, currentUser, requireRole } from '../middleware/auth.js';
 import { param, parseBody, parseQuery } from '../middleware/validate.js';
 import * as finance from '../services/finance.service.js';
+import { availableGateways } from '../services/gateways/index.js';
 import { handleCallback } from '../services/payment.service.js';
 import * as payments from '../services/payment.service.js';
 import * as notifications from '../services/notification.service.js';
@@ -113,6 +114,9 @@ export function paymentRoutes() {
   const router = Router();
   const family = requireRole('STUDENT', 'PARENT', ...FINANCE_ROLES);
 
+  router.get('/gateways', family, (_req, res) => {
+    res.json(availableGateways());
+  });
   router.post('/initiate', requireRole('STUDENT', 'PARENT'), async (req, res) => {
     res
       .status(201)

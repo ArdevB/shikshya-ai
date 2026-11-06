@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { MotionConfig } from 'motion/react';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
@@ -22,13 +23,21 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-          <Toaster richColors position="top-center" />
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    {/* Anyone whose system asks for less motion gets fades instead of movement. */}
+    <MotionConfig reducedMotion="user">
+      <QueryClientProvider client={queryClient}>
+        {/* startTransition keeps the old page on screen while the next page's code loads. */}
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <AuthProvider>
+            <App />
+            <Toaster
+              richColors
+              position="top-center"
+              toastOptions={{ className: 'font-sans !rounded-xl !shadow-lifted' }}
+            />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </MotionConfig>
   </StrictMode>,
 );

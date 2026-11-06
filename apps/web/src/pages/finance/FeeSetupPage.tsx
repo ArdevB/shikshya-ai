@@ -25,6 +25,7 @@ import { Input, Select } from '@/components/ui/input';
 import { api } from '@/lib/api';
 import type { AcademicYear, Program } from '@/lib/types';
 import { useOptions } from '@/lib/useOptions';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 
 interface FeeHead {
   id: string;
@@ -326,20 +327,13 @@ export function FeeSetupPage() {
         title="Fee setup"
         description="What students pay, and the fine for paying late."
       />
-      <div role="tablist" aria-label="Fee setup" className="mb-4 flex flex-wrap gap-2">
-        {TABS.map((name) => (
-          <Button
-            key={name}
-            role="tab"
-            aria-selected={tab === name}
-            variant={tab === name ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </Button>
-        ))}
-      </div>
+      <SegmentedTabs
+        label="Fee setup"
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map((name) => ({ value: name, label: name }))}
+      />
       {tab === 'Fee structures' && <Structures />}
       {tab === 'Fee heads' && (
         <ResourceManager<FeeHead>

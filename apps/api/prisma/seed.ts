@@ -728,9 +728,30 @@ async function main() {
       });
     }
   }
+  // Khalti's test mode only accepts small amounts (about Rs. 10 to 200), so this is the invoice
+  // to use when trying Khalti in its sandbox.
+  await prisma.invoice.create({
+    data: {
+      invoiceNumber: invoiceNumber(students.length + 1),
+      studentId: students[1]!.id,
+      semesterId: semester6.id,
+      issueDate: addDays(today, -2),
+      dueDate: addDays(today, 25),
+      status: 'UNPAID',
+      totalPaisa: 15000,
+      items: {
+        create: {
+          feeHeadId: feeHeads.find(({ head }) => head.code === 'LIBRARY')!.head.id,
+          description: 'Library fine',
+          amountPaisa: 15000,
+        },
+      },
+    },
+  });
+
   await prisma.counter.createMany({
     data: [
-      { name: `SHK-${year4}`, value: students.length },
+      { name: `SHK-${year4}`, value: students.length + 1 },
       { name: `RCP-${year4}`, value: receipts },
     ],
   });

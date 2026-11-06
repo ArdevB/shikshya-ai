@@ -1,7 +1,8 @@
 import { ATTENDANCE_STATUSES, type AttendanceStatus, type Paginated } from '@shikshya/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCheck, ClipboardCheck, Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CheckCheck, ClipboardCheck, Info, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { EmptyState, ErrorState, LoadingRows } from '@/components/feedback';
@@ -10,18 +11,16 @@ import { PageHeader } from '@/components/PageHeader';
 import { Button } from '@/components/ui/button';
 import { Input, Select } from '@/components/ui/input';
 import { api, queryString } from '@/lib/api';
+import { SLIDE } from '@/lib/motion';
 import { offeringLabel, type AttendanceSession, type RosterEntry } from '@/lib/types';
 import { cn, todayInNepal } from '@/lib/utils';
 import { useMyOfferings } from './useMyOfferings';
 
-const STATUS_STYLE: Record<AttendanceStatus, { label: string; active: string }> = {
-  PRESENT: { label: 'Present', active: 'bg-primary text-primary-foreground border-primary' },
-  ABSENT: { label: 'Absent', active: 'bg-accent text-accent-foreground border-accent' },
-  LATE: { label: 'Late', active: 'bg-foreground text-background border-foreground' },
-  EXCUSED: {
-    label: 'Excused',
-    active: 'bg-muted-foreground text-background border-muted-foreground',
-  },
+const STATUS_STYLE: Record<AttendanceStatus, { label: string; fill: string }> = {
+  PRESENT: { label: 'Present', fill: 'bg-primary-strong' },
+  ABSENT: { label: 'Absent', fill: 'bg-accent-strong' },
+  LATE: { label: 'Late', fill: 'bg-foreground' },
+  EXCUSED: { label: 'Excused', fill: 'bg-muted-foreground' },
 };
 
 function StudentRow({
@@ -33,33 +32,71 @@ function StudentRow({
   status: AttendanceStatus;
   onChange: (status: AttendanceStatus) => void;
 }) {
+  const radios = useRef<(HTMLButtonElement | null)[]>([]);
+  const initials = student.studentName
+    .split(' ')
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join('');
+
+  /** The arrow keys move between options, which is how a group of radio buttons works. */
+  const onKeyDown = (event: KeyboardEvent, index: number) => {
+    const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[event.key];
+    if (step === undefined) return;
+    event.preventDefault();
+    const next = (index + step + ATTENDANCE_STATUSES.length) % ATTENDANCE_STATUSES.length;
+    const option = ATTENDANCE_STATUSES[next];
+    if (option) onChange(option);
+    radios.current[next]?.focus();
+  };
+
   return (
-    <li className="space-y-2 rounded-lg border p-3 md:flex md:items-center md:justify-between md:gap-4 md:space-y-0">
-      <div className="min-w-0">
-        <p className="font-medium">{student.studentName}</p>
-        <p className="text-sm text-muted-foreground">{student.rollNumber}</p>
+    <li className="space-y-2.5 rounded-2xl border bg-card p-3 shadow-soft md:flex md:items-center md:justify-between md:gap-4 md:space-y-0">
+      <div className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden
+          className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-soft text-xs font-bold text-primary-dark"
+        >
+          {initials}
+        </span>
+        <div className="min-w-0">
+          <p className="font-medium">{student.studentName}</p>
+          <p className="text-sm text-muted-foreground">{student.rollNumber}</p>
+        </div>
       </div>
       <div
         role="radiogroup"
         aria-label={`Attendance for ${student.studentName}`}
-        className="grid grid-cols-4 gap-1 md:w-96"
+        className="grid grid-cols-4 gap-1 rounded-xl bg-muted p-1 md:w-96"
       >
-        {ATTENDANCE_STATUSES.map((option) => {
+        {ATTENDANCE_STATUSES.map((option, index) => {
           const selected = option === status;
           return (
             <button
               key={option}
+              ref={(element) => {
+                radios.current[index] = element;
+              }}
               type="button"
               role="radio"
               aria-checked={selected}
+              tabIndex={selected ? 0 : -1}
               onClick={() => onChange(option)}
+              onKeyDown={(event) => onKeyDown(event, index)}
               // A tall target, because this is used one-handed on a phone in a classroom.
               className={cn(
-                'h-12 rounded-md border px-1 text-xs font-semibold transition-colors sm:text-sm',
-                selected ? STATUS_STYLE[option].active : 'bg-card hover:bg-primary-soft',
+                'relative h-12 rounded-lg px-1 text-xs font-semibold transition-colors duration-200 sm:text-sm',
+                selected ? 'text-primary-foreground' : 'text-foreground/80 hover:text-foreground',
               )}
             >
-              {STATUS_STYLE[option].label}
+              {selected && (
+                <motion.span
+                  layoutId={`status-${student.studentId}`}
+                  transition={SLIDE}
+                  className={cn('absolute inset-0 rounded-lg shadow-sm', STATUS_STYLE[option].fill)}
+                />
+              )}
+              <span className="relative">{STATUS_STYLE[option].label}</span>
             </button>
           );
         })}
@@ -208,7 +245,7 @@ export function TakeAttendancePage() {
           {existingSession && (
             <p
               role="status"
-              className="flex items-start gap-2 rounded-lg bg-primary-soft p-3 text-sm"
+              className="flex animate-rise items-start gap-2 rounded-xl bg-primary-soft p-3 text-sm"
             >
               <Info className="mt-0.5 size-4 shrink-0 text-primary-dark" aria-hidden />
               Attendance was already taken for this class. Saving will update it.
@@ -217,7 +254,7 @@ export function TakeAttendancePage() {
           <Button variant="outline" className="w-full sm:w-auto" onClick={markAllPresent}>
             <CheckCheck /> Mark all present
           </Button>
-          <ul className="space-y-2">
+          <ul className="stagger-children space-y-2">
             {roster.data.map((student) => (
               <StudentRow
                 key={student.studentId}
@@ -230,7 +267,8 @@ export function TakeAttendancePage() {
             ))}
           </ul>
 
-          <div className="fixed inset-x-0 bottom-0 z-20 border-t bg-background p-3 md:left-64">
+          {/* Sits above the phone's bottom bar, and beside the sidebar on larger screens. */}
+          <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 animate-rise border-t bg-background/85 p-3 backdrop-blur-xl md:bottom-0 md:left-[var(--sidebar-width)]">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
               <p className="text-xs text-muted-foreground sm:text-sm">
                 {counts
@@ -238,6 +276,7 @@ export function TakeAttendancePage() {
                   .join(', ')}
               </p>
               <Button size="lg" disabled={save.isPending} onClick={() => save.mutate()}>
+                {save.isPending && <Loader2 className="animate-spin" aria-hidden />}
                 {save.isPending ? 'Saving…' : existingSession ? 'Update' : 'Save'}
               </Button>
             </div>

@@ -23,9 +23,9 @@ export function MyClassesPage() {
           description="An admin assigns your courses. They will appear here once that is done."
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="stagger-children grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {query.data.data.map((offering) => (
-            <Card key={offering.id}>
+            <Card key={offering.id} className="card-lift">
               <CardContent className="flex h-full flex-col gap-4 pt-5">
                 <div className="flex-1">
                   <p className="text-xs font-semibold text-muted-foreground">

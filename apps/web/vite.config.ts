@@ -22,6 +22,19 @@ export default defineConfig({
       '/socket.io': { target: 'http://localhost:4000', ws: true },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Libraries change rarely, so they are cached separately from the app's own code.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          data: ['@tanstack/react-query', 'zod', 'react-hook-form', '@hookform/resolvers'],
+          motion: ['motion/react'],
+          charts: ['recharts'],
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',

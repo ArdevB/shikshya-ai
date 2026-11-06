@@ -22,6 +22,32 @@ const headers = () => {
   };
 };
 
+/**
+ * Turns Khalti's error into a sentence, so the real reason is visible rather than a generic
+ * failure. Its errors come as { detail: "..." } or as { field: ["..."] }. In test mode the
+ * usual ones are about the amount: https://docs.khalti.com/gotchas/
+ */
+export function describeKhaltiError(status: number, body: Record<string, unknown>) {
+  if (status === 401) return 'Khalti did not accept the merchant key';
+  if (typeof body.detail === 'string') return body.detail;
+  for (const [field, value] of Object.entries(body)) {
+    if (field === 'error_key') continue;
+    if (Array.isArray(value) && typeof value[0] === 'string') return value[0];
+    if (typeof value === 'string') return value;
+  }
+  return `Khalti answered with status ${status}`;
+}
+
+/**
+ * customer_info is optional, and Khalti validates what is in it. Many students have no phone
+ * on record, so it is only sent when complete, rather than risk a refused payment over it.
+ */
+function customerInfo(customer: InitiateInput['customer']) {
+  const phone = customer.phone?.replace(/[\s-]/g, '');
+  if (!phone || !/^9[78]\d{8}$/.test(phone)) return undefined;
+  return { name: customer.name, email: customer.email, phone };
+}
+
 export class KhaltiGateway implements PaymentGateway {
   async initiate(input: InitiateInput): Promise<InitiateOutput> {
     const requestHeaders = headers();
@@ -37,24 +63,21 @@ export class KhaltiGateway implements PaymentGateway {
           amount: input.amountPaisa,
           purchase_order_id: input.paymentId,
           purchase_order_name: input.purchaseName,
-          customer_info: {
-            name: input.customer.name,
-            email: input.customer.email,
-            phone: input.customer.phone ?? undefined,
-          },
+          customer_info: customerInfo(input.customer),
         }),
       });
     } catch {
       throw new ApiError(502, 'GATEWAY_UNAVAILABLE', 'Could not reach Khalti. Please try again.');
     }
 
-    const body = (await response.json().catch(() => ({}))) as {
-      pidx?: string;
-      payment_url?: string;
-    };
-    if (!response.ok || !body.pidx || !body.payment_url) {
+    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    if (!response.ok || typeof body.pidx !== 'string' || typeof body.payment_url !== 'string') {
       console.error('Khalti initiate failed', response.status, body);
-      throw new ApiError(502, 'GATEWAY_ERROR', 'Khalti could not start this payment');
+      throw new ApiError(
+        502,
+        'GATEWAY_ERROR',
+        `Khalti could not start this payment: ${describeKhaltiError(response.status, body)}`,
+      );
     }
     return { redirectUrl: body.payment_url, gatewayRef: body.pidx };
   }

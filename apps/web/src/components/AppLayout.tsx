@@ -1,170 +1,223 @@
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import type { Role } from '@shikshya/shared';
 import { useQuery } from '@tanstack/react-query';
 import {
-  Award,
   Bell,
-  BookOpen,
-  BookOpenText,
-  Building2,
-  CalendarDays,
-  CalendarCheck,
-  ChartColumn,
   ChevronDown,
-  ClipboardCheck,
-  ClipboardList,
-  Coins,
-  DoorOpen,
-  FileCheck2,
-  Files,
-  GraduationCap,
+  ChevronRight,
   KeyRound,
-  LayoutDashboard,
-  Layers,
   LogOut,
   Menu,
-  PartyPopper,
-  Receipt,
-  School,
-  Settings,
-  Table2,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
   User,
-  UserCog,
-  Users,
-  UsersRound,
-  Wallet,
   X,
-  type LucideIcon,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { LayoutGroup, motion } from 'motion/react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useCurrentUser, useAuth } from '@/auth/AuthContext';
+import { useAuth, useCurrentUser } from '@/auth/AuthContext';
 import { roleLabel } from '@/auth/roles';
-import { Logo } from '@/components/Logo';
+import { CommandPalette, useCommandPaletteShortcut } from '@/components/CommandPalette';
+import { PageSkeleton } from '@/components/feedback';
+import { Logo, LogoMark } from '@/components/Logo';
+import { TopProgressBar } from '@/components/motion';
+import { findNavTrail, navGroups, primaryNav, type NavItem } from '@/components/navigation';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
+import { PAGE_ENTER, SLIDE } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
-interface NavItem {
-  to: string;
-  label: string;
-  icon: LucideIcon;
-  end?: boolean;
-  badge?: 'notices';
-}
+const COLLAPSED_KEY = 'shikshya.sidebar-collapsed';
 
-const ADMIN_NAV: NavItem[] = [
-  { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: '/admin/departments', label: 'Departments', icon: Building2 },
-  { to: '/admin/programs', label: 'Programs', icon: School },
-  { to: '/admin/semesters', label: 'Semesters & Sections', icon: Layers },
-  { to: '/admin/courses', label: 'Courses', icon: BookOpen },
-  { to: '/admin/offerings', label: 'Course assignments', icon: CalendarDays },
-  { to: '/admin/teachers', label: 'Teachers', icon: UserCog },
-  { to: '/admin/students', label: 'Students', icon: GraduationCap },
-  { to: '/admin/parents', label: 'Parents', icon: UsersRound },
-  { to: '/admin/rooms', label: 'Rooms & Time Slots', icon: DoorOpen },
-  { to: '/admin/timetable', label: 'Timetable', icon: Table2 },
-  { to: '/admin/exams', label: 'Exams', icon: FileCheck2 },
-  { to: '/admin/results', label: 'Class results', icon: Award },
-  { to: '/admin/notices', label: 'Notices', icon: Bell, badge: 'notices' },
-  { to: '/admin/events', label: 'Events', icon: PartyPopper },
-];
-
-const FINANCE_NAV: NavItem[] = [
-  { to: '/finance', label: 'Fees dashboard', icon: Wallet, end: true },
-  { to: '/finance/invoices', label: 'Invoices', icon: Files },
-  { to: '/finance/payments', label: 'Payments', icon: Receipt },
-  { to: '/finance/setup', label: 'Fee setup', icon: Coins },
-];
-
-const NAV_BY_ROLE: Partial<Record<Role, NavItem[]>> = {
-  SUPER_ADMIN: [
-    ...ADMIN_NAV,
-    ...FINANCE_NAV,
-    { to: '/admin/settings', label: 'Institution settings', icon: Settings },
-  ],
-  ADMIN: [...ADMIN_NAV, ...FINANCE_NAV],
-  ACCOUNTANT: [
-    ...FINANCE_NAV,
-    { to: '/finance/notices', label: 'Notices', icon: Bell, badge: 'notices' },
-    { to: '/finance/events', label: 'Events', icon: PartyPopper },
-  ],
-  TEACHER: [
-    { to: '/teacher', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/teacher/classes', label: 'My classes', icon: Users },
-    { to: '/teacher/timetable', label: 'My timetable', icon: Table2 },
-    { to: '/teacher/attendance', label: 'Take attendance', icon: ClipboardCheck },
-    { to: '/teacher/reports', label: 'Attendance reports', icon: ChartColumn },
-    { to: '/teacher/marks', label: 'Enter marks', icon: FileCheck2 },
-    { to: '/teacher/results', label: 'Class results', icon: Award },
-    { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
-    { to: '/teacher/materials', label: 'Materials', icon: BookOpenText },
-    { to: '/teacher/notices', label: 'Notices', icon: Bell, badge: 'notices' },
-    { to: '/teacher/events', label: 'Events', icon: PartyPopper },
-  ],
-  STUDENT: [
-    { to: '/student', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/student/timetable', label: 'Timetable', icon: Table2 },
-    { to: '/student/attendance', label: 'My attendance', icon: CalendarCheck },
-    { to: '/student/results', label: 'My results', icon: Award },
-    { to: '/student/assignments', label: 'Assignments', icon: ClipboardList },
-    { to: '/student/materials', label: 'Materials', icon: BookOpenText },
-    { to: '/student/fees', label: 'Fees', icon: Wallet },
-    { to: '/student/notices', label: 'Notices', icon: Bell, badge: 'notices' },
-    { to: '/student/events', label: 'Events', icon: PartyPopper },
-  ],
-  PARENT: [
-    { to: '/parent', label: 'Dashboard', icon: LayoutDashboard, end: true },
-    { to: '/parent/timetable', label: 'Timetable', icon: Table2 },
-    { to: '/parent/attendance', label: 'Attendance', icon: CalendarCheck },
-    { to: '/parent/results', label: 'Results', icon: Award },
-    { to: '/parent/assignments', label: 'Assignments', icon: ClipboardList },
-    { to: '/parent/materials', label: 'Materials', icon: BookOpenText },
-    { to: '/parent/fees', label: 'Fees', icon: Wallet },
-    { to: '/parent/notices', label: 'Notices', icon: Bell, badge: 'notices' },
-    { to: '/parent/events', label: 'Events', icon: PartyPopper },
-  ],
-};
-
-const SHARED_NAV: NavItem[] = [{ to: '/profile', label: 'Profile', icon: User }];
-
-function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
-  const user = useCurrentUser();
-  const items = [...(NAV_BY_ROLE[user.role] ?? []), ...SHARED_NAV];
-  const unread = useQuery({
+function useUnreadNotices() {
+  const { data } = useQuery({
     queryKey: ['notices', 'unread-count'],
     queryFn: () => api.get<{ count: number }>('/notices/unread-count'),
     refetchInterval: 60_000,
   });
+  return data?.count ?? 0;
+}
+
+function NavRow({
+  item,
+  collapsed,
+  unread,
+  onNavigate,
+}: {
+  item: NavItem;
+  collapsed: boolean;
+  unread: number;
+  onNavigate?: () => void;
+}) {
+  const showBadge = item.badge === 'notices' && unread > 0;
   return (
-    <nav aria-label="Main" className="flex flex-col gap-1 p-3">
-      {items.map((item) => (
-        <NavLink
-          key={item.to}
-          to={item.to}
-          end={item.end}
-          onClick={onNavigate}
-          className={({ isActive }) =>
-            cn(
-              'flex min-h-11 items-center gap-3 rounded-md border-l-4 border-transparent px-3 text-sm font-medium transition-colors hover:bg-primary-soft',
-              isActive && 'border-accent bg-primary-soft text-primary-dark',
-            )
-          }
-        >
-          <item.icon className="size-5 shrink-0" aria-hidden />
-          <span className="flex-1">{item.label}</span>
-          {item.badge === 'notices' && Boolean(unread.data?.count) && (
-            <span
-              className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-accent-foreground"
-              aria-label={`${unread.data?.count} unread`}
+    <NavLink
+      to={item.to}
+      end={item.end}
+      onClick={onNavigate}
+      title={collapsed ? item.label : undefined}
+      aria-label={collapsed ? item.label : undefined}
+      className={({ isActive }) =>
+        cn(
+          'group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200',
+          isActive
+            ? 'text-primary-dark'
+            : 'text-foreground/80 hover:bg-primary-soft/60 hover:text-foreground',
+          collapsed && 'justify-center px-0',
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <motion.span
+              layoutId="nav-active"
+              transition={SLIDE}
+              className="absolute inset-0 rounded-xl bg-primary-soft"
             >
-              {unread.data?.count}
+              <span className="absolute inset-y-2 left-0 w-1 rounded-full bg-accent" />
+            </motion.span>
+          )}
+          <item.icon
+            className="relative size-5 shrink-0 transition-transform duration-200 ease-spring group-hover:scale-110"
+            aria-hidden
+          />
+          {!collapsed && <span className="relative flex-1 truncate">{item.label}</span>}
+          {showBadge && (
+            <span
+              key={unread}
+              aria-label={`${unread} unread`}
+              className={cn(
+                'animate-pop rounded-full bg-accent-strong text-xs font-semibold text-accent-foreground',
+                collapsed
+                  ? 'absolute right-1.5 top-1 flex size-4 items-center justify-center text-[10px]'
+                  : 'relative px-2 py-0.5',
+              )}
+            >
+              {unread}
             </span>
           )}
-        </NavLink>
-      ))}
+        </>
+      )}
+    </NavLink>
+  );
+}
+
+function SidebarNav({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
+  const user = useCurrentUser();
+  const unread = useUnreadNotices();
+  return (
+    <LayoutGroup id={onNavigate ? 'drawer' : 'sidebar'}>
+      <nav aria-label="Main" className="flex flex-col gap-4 p-3">
+        {navGroups(user.role).map((group) => (
+          <div key={group.label}>
+            {collapsed ? (
+              <div className="mx-3 mb-2 border-t" aria-hidden />
+            ) : (
+              <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">{group.label}</p>
+            )}
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <NavRow
+                  key={item.to}
+                  item={item}
+                  collapsed={collapsed}
+                  unread={unread}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </nav>
+    </LayoutGroup>
+  );
+}
+
+/** The phone's way around: the four most-used places in reach of a thumb, and everything else. */
+function BottomBar({ onOpenMore }: { onOpenMore: () => void }) {
+  const user = useCurrentUser();
+  const unread = useUnreadNotices();
+  const itemClass = (active: boolean) =>
+    cn(
+      'relative flex h-16 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-200',
+      active ? 'text-primary-dark' : 'text-muted-foreground',
+    );
+  return (
+    <LayoutGroup id="bottom-bar">
+      <nav
+        aria-label="Quick links"
+        className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/85 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden"
+      >
+        <ul className="grid grid-cols-5">
+          {primaryNav(user.role).map((item) => (
+            <li key={item.to}>
+              <NavLink
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) => itemClass(isActive)}
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="relative flex h-8 w-14 items-center justify-center">
+                      {isActive && (
+                        <motion.span
+                          layoutId="bottom-active"
+                          transition={SLIDE}
+                          className="absolute inset-0 rounded-full bg-primary-soft"
+                        />
+                      )}
+                      <item.icon className="relative size-5" aria-hidden />
+                      {item.badge === 'notices' && unread > 0 && (
+                        <span
+                          aria-label={`${unread} unread`}
+                          className="absolute right-2 top-0.5 size-2.5 animate-pop rounded-full bg-accent-strong ring-2 ring-background"
+                        />
+                      )}
+                    </span>
+                    <span className="max-w-full truncate px-1">
+                      {item.label.replace('My ', '').replace('Take ', '')}
+                    </span>
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
+          <li>
+            <button type="button" onClick={onOpenMore} className={cn(itemClass(false), 'w-full')}>
+              <span className="flex h-8 w-14 items-center justify-center">
+                <Menu className="size-5" aria-hidden />
+              </span>
+              More
+            </button>
+          </li>
+        </ul>
+      </nav>
+    </LayoutGroup>
+  );
+}
+
+function Breadcrumb() {
+  const user = useCurrentUser();
+  const { pathname } = useLocation();
+  const trail = findNavTrail(user.role, pathname);
+  if (!trail) return null;
+  return (
+    <nav aria-label="You are here" className="hidden items-center gap-1.5 text-sm md:flex">
+      <span className="text-muted-foreground">{trail.group.label}</span>
+      <ChevronRight className="size-4 text-muted-foreground/70" aria-hidden />
+      <span key={trail.item.to} aria-current="page" className="animate-rise font-medium">
+        {trail.item.label}
+      </span>
     </nav>
   );
 }
@@ -181,16 +234,16 @@ function UserMenu() {
   };
 
   const itemClass =
-    'flex min-h-10 cursor-pointer items-center gap-2 rounded-sm px-2 text-sm outline-none data-[highlighted]:bg-primary-soft';
+    'flex min-h-10 cursor-pointer items-center gap-2 rounded-lg px-2 text-sm outline-none transition-colors data-[highlighted]:bg-primary-soft';
 
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <Button variant="ghost" className="gap-2 px-2" aria-label="Account menu">
-          <span className="flex size-8 items-center justify-center rounded-full bg-accent text-xs font-bold text-accent-foreground">
+        <Button variant="ghost" className="gap-2 px-1.5 sm:px-2" aria-label="Account menu">
+          <span className="flex size-9 items-center justify-center rounded-full bg-gradient-brand text-xs font-bold text-primary-foreground shadow-sm">
             {initials}
           </span>
-          <span className="hidden text-left sm:block">
+          <span className="hidden text-left lg:block">
             <span className="block text-sm leading-tight">
               {user.firstName} {user.lastName}
             </span>
@@ -198,15 +251,17 @@ function UserMenu() {
               {roleLabel(user.role)}
             </span>
           </span>
-          <ChevronDown className="text-muted-foreground" />
+          <ChevronDown className="hidden text-muted-foreground sm:block" />
         </Button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          align="end"
-          sideOffset={6}
-          className="z-50 min-w-48 rounded-md border bg-card p-1 shadow-md"
-        >
+        <DropdownMenu.Content align="end" sideOffset={8} className="menu-content min-w-56 p-1.5">
+          <div className="border-b px-2 pb-2 pt-1 lg:hidden">
+            <p className="text-sm font-medium">
+              {user.firstName} {user.lastName}
+            </p>
+            <p className="text-xs text-muted-foreground">{roleLabel(user.role)}</p>
+          </div>
           <DropdownMenu.Item asChild className={itemClass}>
             <Link to="/profile">
               <User className="size-4" aria-hidden /> Profile
@@ -233,68 +288,134 @@ function UserMenu() {
 }
 
 export function AppLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation();
+  const user = useCurrentUser();
+  const { pathname } = useLocation();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
+  const main = useRef<HTMLElement>(null);
+  const firstRender = useRef(true);
+  const [announcement, setAnnouncement] = useState('');
 
-  // Close the mobile menu after moving to another page.
-  useEffect(() => setMobileOpen(false), [location.pathname]);
+  useCommandPaletteShortcut(setPaletteOpen);
+
+  useEffect(() => {
+    localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0');
+    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '5.25rem' : '17rem');
+  }, [collapsed]);
+
+  // After moving to another page: close the phone menu, start at the top, and tell keyboard and
+  // screen reader users where they are. A click on a link would otherwise leave them nowhere.
+  useEffect(() => {
+    setDrawerOpen(false);
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    main.current?.focus({ preventScroll: true });
+    setAnnouncement(findNavTrail(user.role, pathname)?.item.label ?? '');
+  }, [pathname, user.role]);
 
   return (
-    <div className="min-h-dvh md:grid md:grid-cols-[16rem_1fr]">
-      <aside className="sticky top-0 hidden h-dvh overflow-y-auto border-r md:block">
-        <div className="flex h-16 items-center border-b px-5">
-          <Logo />
-        </div>
-        <SidebarNav />
-      </aside>
+    <div className="min-h-dvh">
+      <a
+        href="#main"
+        className="fixed left-3 top-3 z-[70] -translate-y-20 rounded-xl bg-primary-strong px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lifted transition-transform focus:translate-y-0"
+      >
+        Skip to content
+      </a>
+      <TopProgressBar />
+      <div aria-live="polite" className="sr-only">
+        {announcement}
+      </div>
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <button
-            type="button"
-            aria-label="Close menu"
-            className="absolute inset-0 bg-foreground/50"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[85%] overflow-y-auto bg-background shadow-lg">
-            <div className="flex h-16 items-center justify-between border-b px-4">
-              <Logo />
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Close menu"
-                onClick={() => setMobileOpen(false)}
-              >
-                <X />
-              </Button>
-            </div>
-            <SidebarNav onNavigate={() => setMobileOpen(false)} />
-          </aside>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar-width)] flex-col border-r bg-card/70 backdrop-blur-xl transition-[width] duration-300 ease-spring md:flex">
+        <div
+          className={cn(
+            'flex h-16 shrink-0 items-center border-b px-5',
+            collapsed && 'justify-center px-0',
+          )}
+        >
+          {collapsed ? <LogoMark /> : <Logo />}
         </div>
-      )}
-
-      <div className="flex min-w-0 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-2 border-b bg-background px-4 md:justify-end md:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <SidebarNav collapsed={collapsed} />
+        </div>
+        <div className="shrink-0 border-t p-3">
           <Button
             variant="ghost"
-            size="icon"
-            className="md:hidden"
-            aria-label="Open menu"
-            onClick={() => setMobileOpen(true)}
+            className={cn('w-full justify-start gap-3 font-medium', collapsed && 'justify-center')}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            onClick={() => setCollapsed((value) => !value)}
           >
-            <Menu className="[&]:size-6" />
+            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+            {!collapsed && 'Collapse'}
           </Button>
-          <div className="flex items-center gap-1">
-            <NotificationBell />
-            <UserMenu />
+        </div>
+      </aside>
+
+      <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="dialog-overlay" />
+          <DialogPrimitive.Content className="drawer-content" aria-describedby={undefined}>
+            <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
+            <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-4 backdrop-blur-xl">
+              <Logo />
+              <DialogPrimitive.Close asChild>
+                <Button variant="ghost" size="icon" aria-label="Close menu">
+                  <X />
+                </Button>
+              </DialogPrimitive.Close>
+            </div>
+            <SidebarNav onNavigate={() => setDrawerOpen(false)} />
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
+
+      <div className="flex min-h-dvh min-w-0 flex-col transition-[padding] duration-300 ease-spring md:pl-[var(--sidebar-width)]">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl md:px-8">
+          <div className="md:hidden">
+            <LogoMark />
           </div>
+          <Breadcrumb />
+          <div className="flex-1" />
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Search pages"
+            aria-keyshortcuts="Control+K Meta+K"
+            className="flex size-10 items-center justify-center gap-2 rounded-xl text-sm text-muted-foreground transition-colors hover:bg-primary-soft hover:text-foreground lg:h-10 lg:w-56 lg:justify-start lg:border lg:bg-card lg:px-3 lg:shadow-sm"
+          >
+            <Search className="size-[18px] shrink-0" aria-hidden />
+            <span className="hidden flex-1 text-left lg:block">Search…</span>
+            <kbd className="hidden rounded-md border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium lg:block">
+              Ctrl K
+            </kbd>
+          </button>
+          <NotificationBell />
+          <UserMenu />
         </header>
-        <main className="flex-1 p-4 md:p-8">
-          <div className="mx-auto max-w-6xl">
-            <Outlet />
-          </div>
+
+        <main
+          ref={main}
+          id="main"
+          tabIndex={-1}
+          className="flex-1 p-4 pb-24 focus-visible:ring-0 focus-visible:ring-offset-0 md:p-8"
+        >
+          {/* The boundary sits outside the keyed page, so moving between pages keeps the old one
+              on screen until the new one is ready, rather than flashing a loading state. */}
+          <Suspense fallback={<PageSkeleton />}>
+            <motion.div key={pathname} {...PAGE_ENTER} className="mx-auto max-w-6xl">
+              <Outlet />
+            </motion.div>
+          </Suspense>
         </main>
       </div>
+
+      <BottomBar onOpenMore={() => setDrawerOpen(true)} />
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
     </div>
   );
 }

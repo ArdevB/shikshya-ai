@@ -19,7 +19,8 @@
     "db:up": "docker compose up -d postgres",
     "db:local": "pnpm --filter @shikshya/api db:local",
     "db:migrate": "pnpm --filter @shikshya/api db:migrate",
-    "db:seed": "pnpm --filter @shikshya/api db:seed"
+    "db:seed": "pnpm --filter @shikshya/api db:seed",
+    "khalti:check": "pnpm --filter @shikshya/api khalti:check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

@@ -180,10 +180,10 @@ export function TeacherAssignmentsPage() {
       ) : query.data.data.length === 0 ? (
         <EmptyState icon={ClipboardList} title="No assignments yet" />
       ) : (
-        <ul className="grid gap-4 md:grid-cols-2">
+        <ul className="stagger-children grid gap-4 md:grid-cols-2">
           {query.data.data.map((assignment) => (
             <li key={assignment.id}>
-              <Card className="h-full">
+              <Card className="card-lift h-full">
                 <CardContent className="flex h-full flex-col gap-3 pt-5">
                   <div className="flex-1">
                     <p className="text-xs font-semibold text-muted-foreground">
@@ -318,9 +318,9 @@ export function SubmissionsPage() {
         title={query.data.title}
         description={`${submitted} of ${query.data.rows.length} students have submitted.`}
       />
-      <ul className="space-y-3">
+      <ul className="stagger-children space-y-3">
         {query.data.rows.map((row) => (
-          <li key={row.studentId} className="space-y-3 rounded-lg border p-4">
+          <li key={row.studentId} className="space-y-3 rounded-2xl border bg-card p-4 shadow-soft">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
                 <p className="font-medium">{row.studentName}</p>

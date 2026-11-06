@@ -31,6 +31,8 @@ Palette chosen by the project owner (replaces the original navy/indigo/saffron d
 - Shades derived from those, so text stays readable: Ink `#0B2B3A` (body text, dark surfaces), Muted `#4A6472` (secondary text), Border `#D5E6ED`, Sky Dark `#04729A` (links and small blue text, because Sky Blue on white is only 3.5:1), Pink Dark `#B02476` (small pink text)
 - Headings: Space Grotesk. Body: Inter.
 - Tokens live in `apps/web/src/index.css` and `apps/web/tailwind.config.ts`. Components use the tokens, never raw hex values.
+- Shades with white text on them: Sky Strong `#047EA9` and Pink Strong `#CC2F8B` for buttons, at 4.5:1. Exact Sky Blue and Hot Pink stay on brand surfaces, charts and marks, which are not small text. `apps/web/src/test/tokens.test.ts` checks these pairs.
+- Motion: `--ease-spring` for nearly everything, kept short (under about 0.5s for anything someone waits on). Use CSS for lists (`stagger-children`, `animate-rise`, `card-lift`) and `motion/react` only for shared-layout movement and things CSS cannot do. Decorative loops animate only transform and opacity. `prefers-reduced-motion` is honoured globally in `index.css` and by `MotionConfig` in `main.tsx`, so never bypass them.
 - Set these as Tailwind theme tokens / shadcn CSS variables in Phase 1.
 
 ## Roles

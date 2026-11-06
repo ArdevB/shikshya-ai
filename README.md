@@ -143,8 +143,10 @@ Automated tests cover the payment logic against mocked gateway responses. A real
 
 1. Start the app, log in as `student02@shikshya.test` and open **Fees**.
 2. **eSewa:** choose **Pay now → Pay with eSewa**, then log in on eSewa's test page with ID `9711111111`, password `Nepal@123`, MPIN `1122` and token `123456`.
-3. **Khalti:** first create a merchant account at <https://test-admin.khalti.com>, put its `live_secret_key` in `apps/api/.env` as `KHALTI_SECRET_KEY`, and restart. Then choose **Pay with Khalti** and use ID `9800000000`, MPIN `1111` and OTP `987654`.
+3. **Khalti:** first create a merchant account at <https://test-admin.khalti.com> (the login OTP is `987654`), put its `live_secret_key` in `apps/api/.env` as `KHALTI_SECRET_KEY`, and restart. Run `pnpm khalti:check` to confirm Khalti accepts it. Then, still as `student02@shikshya.test`, pay the **Rs. 150 library fine**, choosing **Pay with Khalti** and using ID `9800000000`, MPIN `1111` and OTP `987654`.
 4. You should return to a "Payment successful" page where the receipt downloads, and the invoice should now show as paid.
+
+Khalti's test mode only accepts small amounts, about [Rs. 10 to Rs. 200](https://docs.khalti.com/gotchas/), which is why the Rs. 51,500 tuition invoices cannot be paid with it in the sandbox. If Khalti refuses a payment, the app shows Khalti's own reason. `pnpm khalti:check` prints what Khalti says to a small test payment, which tells a problem with your key from one on Khalti's side.
 
 These test values come from [eSewa's](https://developer.esewa.com.np/pages/Epay) and [Khalti's](https://docs.khalti.com/khalti-epayment/) developer docs. For production, set your own keys and URLs in `apps/api/.env`.
 

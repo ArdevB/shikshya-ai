@@ -18,6 +18,7 @@ import { api, queryString } from '@/lib/api';
 import { offeringLabel, type AttendanceSession } from '@/lib/types';
 import { formatDate, toDateInput } from '@/lib/utils';
 import { useMyOfferings } from './useMyOfferings';
+import { AnimatedValue } from '@/components/motion';
 
 function Report({ offeringId }: { offeringId: string }) {
   const report = useQuery({
@@ -41,7 +42,7 @@ function Report({ offeringId }: { offeringId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="stagger-children grid grid-cols-3 gap-3">
         {[
           ['Classes held', report.data.sessionCount],
           ['Students', report.data.students.length],
@@ -49,7 +50,9 @@ function Report({ offeringId }: { offeringId: string }) {
         ].map(([label, value]) => (
           <Card key={label}>
             <CardContent className="pt-4">
-              <p className="font-heading text-2xl font-bold">{value}</p>
+              <p className="font-heading text-2xl font-bold">
+                <AnimatedValue value={value ?? 0} />
+              </p>
               <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
             </CardContent>
           </Card>

@@ -14,6 +14,8 @@ import { api } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { downloadOrToast } from './InvoicesPage';
 import { useState } from 'react';
+import { AnimatedNumber } from '@/components/motion';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
 
 const METHOD_LABEL = { ESEWA: 'eSewa', KHALTI: 'Khalti', CASH: 'Cash', BANK: 'Bank' } as const;
 
@@ -44,8 +46,8 @@ export function FinanceDashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title={`Welcome, ${user.firstName}`}
+      <WelcomeBanner
+        firstName={user.firstName}
         description="Fee collections at a glance."
         actions={
           <Button
@@ -57,7 +59,7 @@ export function FinanceDashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="stagger-children grid gap-4 md:grid-cols-3">
         {(
           [
             ['Collected today', summary.data?.todayPaisa],
@@ -69,7 +71,11 @@ export function FinanceDashboardPage() {
             <CardContent className="pt-5">
               <p className="text-sm text-muted-foreground">{label}</p>
               <p className="font-heading text-2xl font-bold">
-                {paisa === undefined ? '…' : formatNpr(paisa)}
+                {paisa === undefined ? (
+                  '…'
+                ) : (
+                  <AnimatedNumber value={paisa} format={(n) => formatNpr(Math.round(n))} />
+                )}
               </p>
             </CardContent>
           </Card>

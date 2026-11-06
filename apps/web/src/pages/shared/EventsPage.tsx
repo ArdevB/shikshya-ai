@@ -23,6 +23,8 @@ import { sectionLabel, type Program, type Section } from '@/lib/types';
 import { useOptions } from '@/lib/useOptions';
 import { cn, formatDateTime, nepalDateKey, toDateTimeInput, todayInNepal } from '@/lib/utils';
 import { AUDIENCE_LABEL } from './NoticesPage';
+import { motion } from 'motion/react';
+import { EASE_SPRING } from '@/lib/motion';
 
 const MONTH_FORMAT = new Intl.DateTimeFormat('en-GB', {
   month: 'long',
@@ -60,6 +62,7 @@ export function EventsPage() {
     month: Number(today.slice(5, 7)) - 1,
   }));
   const [selectedDay, setSelectedDay] = useState(today);
+  const [direction, setDirection] = useState(1);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<EventView | null>(null);
   const [deleting, setDeleting] = useState<EventView | null>(null);
@@ -99,11 +102,13 @@ export function EventsPage() {
     onError: (error) => toast.error(error.message),
   });
 
-  const move = (step: number) =>
+  const move = (step: number) => {
+    setDirection(step);
     setCursor(({ year, month }) => {
       const next = new Date(Date.UTC(year, month + step, 1));
       return { year: next.getUTCFullYear(), month: next.getUTCMonth() };
     });
+  };
 
   /** An event appears on each day it runs, in Nepal time. */
   const eventsOn = (day: string) =>
@@ -165,7 +170,7 @@ export function EventsPage() {
         <ErrorState error={query.error} onRetry={() => void query.refetch()} />
       ) : (
         <div className="space-y-4">
-          <div className="overflow-hidden rounded-lg border">
+          <div className="overflow-hidden rounded-2xl border bg-card shadow-soft">
             <div className="grid grid-cols-7 bg-primary-soft text-center text-xs font-semibold">
               {DAY_NAMES.map((name) => (
                 <div key={name} className="py-2">
@@ -173,7 +178,13 @@ export function EventsPage() {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7">
+            <motion.div
+              key={`${cursor.year}-${cursor.month}`}
+              className="grid grid-cols-7"
+              initial={{ opacity: 0, x: direction * 28 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.32, ease: EASE_SPRING }}
+            >
               {days.map((day) => {
                 const inMonth = Number(day.slice(5, 7)) - 1 === cursor.month;
                 const dayEvents = eventsOn(day);
@@ -185,7 +196,7 @@ export function EventsPage() {
                     aria-pressed={selectedDay === day}
                     onClick={() => setSelectedDay(day)}
                     className={cn(
-                      'flex min-h-14 flex-col gap-1 border-l border-t p-1 text-left text-xs transition-colors hover:bg-primary-soft md:min-h-24',
+                      'flex min-h-14 flex-col gap-1 border-l border-t p-1 text-left text-xs transition-colors duration-200 hover:bg-primary-soft md:min-h-24',
                       !inMonth && 'text-muted-foreground/60',
                       selectedDay === day && 'bg-primary-soft',
                     )}
@@ -202,7 +213,7 @@ export function EventsPage() {
                       {dayEvents.slice(0, 2).map((event) => (
                         <span
                           key={event.id}
-                          className="block truncate border-l-2 border-primary bg-primary-soft px-1"
+                          className="block animate-pop truncate rounded-r border-l-2 border-primary bg-primary-soft px-1"
                         >
                           {event.title}
                         </span>
@@ -219,13 +230,13 @@ export function EventsPage() {
                   </button>
                 );
               })}
-            </div>
+            </motion.div>
           </div>
 
           {selected.length === 0 ? (
             <EmptyState icon={CalendarDays} title={`No events on ${selectedDay}`} />
           ) : (
-            <ul className="space-y-3">
+            <ul className="stagger-children space-y-3">
               {selected.map((event) => (
                 <li key={event.id}>
                   <Card>

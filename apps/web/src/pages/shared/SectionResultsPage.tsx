@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select } from '@/components/ui/input';
 import { api, queryString } from '@/lib/api';
 import { sectionLabel, type CourseOffering, type Section } from '@/lib/types';
+import { AnimatedValue } from '@/components/motion';
 
 /** Admins can pick any section; teachers only the sections they teach. */
 function useSectionChoices() {
@@ -57,7 +58,7 @@ function Summary({ sectionId }: { sectionId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="stagger-children grid grid-cols-3 gap-3">
         {(
           [
             ['Students', data.studentCount],
@@ -67,7 +68,9 @@ function Summary({ sectionId }: { sectionId: string }) {
         ).map(([label, value]) => (
           <Card key={label}>
             <CardContent className="pt-4">
-              <p className="font-heading text-2xl font-bold">{value}</p>
+              <p className="font-heading text-2xl font-bold">
+                <AnimatedValue value={value} />
+              </p>
               <p className="text-xs text-muted-foreground sm:text-sm">{label}</p>
             </CardContent>
           </Card>

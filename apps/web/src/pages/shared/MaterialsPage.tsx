@@ -37,9 +37,9 @@ function MaterialCards({
     return <EmptyState icon={BookOpenText} title="No materials yet" />;
   }
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="stagger-children grid gap-4 md:grid-cols-2">
       {materials.map((material) => (
-        <Card key={material.id}>
+        <Card key={material.id} className="card-lift">
           <CardContent className="space-y-2 pt-5">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">

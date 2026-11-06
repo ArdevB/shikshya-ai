@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { downloadOrToast } from '@/pages/finance/InvoicesPage';
 import { ChildSwitcher, useActiveChild } from './ChildSwitcher';
+import { AnimatedValue } from '@/components/motion';
 
 function SemesterCard({ semester, studentId }: { semester: SemesterResult; studentId: string }) {
   return (
@@ -88,12 +89,14 @@ function ResultsView({ studentId }: { studentId: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="stagger-children space-y-6">
       <div className="grid gap-4 md:grid-cols-[14rem_1fr]">
         <Card>
           <CardContent className="pt-5">
             <p className="text-sm text-muted-foreground">CGPA</p>
-            <p className="font-heading text-5xl font-bold">{cgpa.toFixed(2)}</p>
+            <p className="font-heading text-5xl font-bold">
+              <AnimatedValue value={cgpa.toFixed(2)} />
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
               Across {semesters.length} published{' '}
               {semesters.length === 1 ? 'semester' : 'semesters'}

@@ -4,12 +4,12 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { ResourceManager } from '@/components/ResourceManager';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { FormField } from '@/components/FormField';
 import type { AcademicYear, Program, Section, Semester } from '@/lib/types';
 import { useOptions } from '@/lib/useOptions';
 import { formatDate, toDateInput } from '@/lib/utils';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 
 const TABS = ['Sections', 'Semesters', 'Academic years'] as const;
 type Tab = (typeof TABS)[number];
@@ -151,20 +151,13 @@ export function SemestersPage() {
         title="Semesters & Sections"
         description="Set up academic years, then the semesters and sections inside them."
       />
-      <div role="tablist" aria-label="Academic calendar" className="mb-4 flex flex-wrap gap-2">
-        {TABS.map((name) => (
-          <Button
-            key={name}
-            role="tab"
-            aria-selected={tab === name}
-            variant={tab === name ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </Button>
-        ))}
-      </div>
+      <SegmentedTabs
+        label="Academic calendar"
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map((name) => ({ value: name, label: name }))}
+      />
       {tab === 'Sections' && <Sections />}
       {tab === 'Semesters' && <Semesters />}
       {tab === 'Academic years' && <AcademicYears />}

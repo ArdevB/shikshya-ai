@@ -9,6 +9,9 @@ export interface Column<T> {
   className?: string;
 }
 
+/** Rows arrive one after another, but only the first few, so long lists still feel instant. */
+const rowDelay = (index: number) => ({ animationDelay: `${Math.min(index, 10) * 28}ms` });
+
 /**
  * Rows are a table on wider screens and a stack of cards on phones,
  * so nothing has to be scrolled sideways at 375px.
@@ -26,32 +29,43 @@ export function DataTable<T>({
 }) {
   return (
     <>
-      <div className="hidden overflow-x-auto rounded-lg border md:block">
+      <div className="hidden overflow-x-auto rounded-2xl border bg-card shadow-soft md:block">
         <table className="w-full text-left text-sm">
-          <thead className="bg-primary-soft">
-            <tr>
+          <thead>
+            <tr className="border-b bg-primary-soft/60">
               {columns.map((column) => (
-                <th key={column.header} scope="col" className="px-4 py-3 font-semibold">
+                <th
+                  key={column.header}
+                  scope="col"
+                  className="whitespace-nowrap px-4 py-3 text-xs font-semibold text-muted-foreground"
+                >
                   {column.header}
                 </th>
               ))}
               {actions && (
-                <th scope="col" className="px-4 py-3 text-right font-semibold">
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-right text-xs font-semibold text-muted-foreground"
+                >
                   Actions
                 </th>
               )}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={rowKey(row)} className="border-t">
+            {rows.map((row, index) => (
+              <tr
+                key={rowKey(row)}
+                className="animate-rise border-b transition-colors last:border-0 hover:bg-primary-soft/40"
+                style={rowDelay(index)}
+              >
                 {columns.map((column) => (
                   <td key={column.header} className={cn('px-4 py-3', column.className)}>
                     {column.cell(row)}
                   </td>
                 ))}
                 {actions && (
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-2">
                     <div className="flex justify-end gap-1">{actions(row)}</div>
                   </td>
                 )}
@@ -62,8 +76,12 @@ export function DataTable<T>({
       </div>
 
       <ul className="space-y-3 md:hidden">
-        {rows.map((row) => (
-          <li key={rowKey(row)} className="rounded-lg border p-4">
+        {rows.map((row, index) => (
+          <li
+            key={rowKey(row)}
+            className="animate-rise rounded-2xl border bg-card p-4 shadow-soft"
+            style={rowDelay(index)}
+          >
             <dl className="space-y-1.5 text-sm">
               {columns.map((column) => (
                 <div key={column.header} className="flex justify-between gap-4">

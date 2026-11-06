@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { ResourceManager } from '@/components/ResourceManager';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { SegmentedTabs } from '@/components/ui/segmented-tabs';
 
 interface Room {
   id: string;
@@ -28,20 +28,13 @@ export function RoomsPage() {
   return (
     <>
       <PageHeader title="Rooms & Time Slots" description="The building blocks of the timetable." />
-      <div role="tablist" aria-label="Rooms and time slots" className="mb-4 flex gap-2">
-        {TABS.map((name) => (
-          <Button
-            key={name}
-            role="tab"
-            aria-selected={tab === name}
-            variant={tab === name ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setTab(name)}
-          >
-            {name}
-          </Button>
-        ))}
-      </div>
+      <SegmentedTabs
+        label="Rooms and time slots"
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={TABS.map((name) => ({ value: name, label: name }))}
+      />
       {tab === 'Rooms' ? (
         <ResourceManager<Room>
           path="/rooms"

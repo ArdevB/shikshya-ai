@@ -28,27 +28,23 @@ export const DialogDescription = forwardRef<
 ));
 DialogDescription.displayName = 'DialogDescription';
 
+/** Centred on larger screens and a bottom sheet on phones. See .dialog-content in index.css. */
 export const DialogContent = forwardRef<
   ElementRef<typeof DialogPrimitive.Content>,
-  ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
->(({ className, children, ...props }, ref) => (
+  ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & { hideClose?: boolean }
+>(({ className, children, hideClose = false, ...props }, ref) => (
   <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/50 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-    <DialogPrimitive.Content
-      ref={ref}
-      className={cn(
-        'fixed left-1/2 top-1/2 z-50 flex max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col gap-4 overflow-y-auto rounded-lg border bg-card p-5 shadow-lg',
-        className,
-      )}
-      {...props}
-    >
+    <DialogPrimitive.Overlay className="dialog-overlay" />
+    <DialogPrimitive.Content ref={ref} className={cn('dialog-content', className)} {...props}>
       {children}
-      <DialogPrimitive.Close
-        className="absolute right-3 top-3 rounded-sm p-1 text-muted-foreground hover:text-foreground"
-        aria-label="Close"
-      >
-        <X className="size-5" />
-      </DialogPrimitive.Close>
+      {!hideClose && (
+        <DialogPrimitive.Close
+          className="absolute right-3 top-3 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-primary-soft hover:text-foreground"
+          aria-label="Close"
+        >
+          <X className="size-5" />
+        </DialogPrimitive.Close>
+      )}
     </DialogPrimitive.Content>
   </DialogPrimitive.Portal>
 ));

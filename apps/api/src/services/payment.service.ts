@@ -259,7 +259,13 @@ export async function handleCallback(method: string, params: Record<string, unkn
   if (!payment || payment.method !== method) return { paymentId: null };
 
   if (payment.status === 'INITIATED') {
-    await applyVerification(payment.id, await gateway.verify(payment));
+    try {
+      await applyVerification(payment.id, await gateway.verify(payment));
+    } catch (error) {
+      // The customer is mid-redirect, so they get our result page, not a raw error. The
+      // payment stays INITIATED, and the reconciliation job checks it again.
+      console.error(`Could not verify payment ${payment.id}`, error);
+    }
   }
   return { paymentId: payment.id };
 }

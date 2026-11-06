@@ -13,13 +13,14 @@ import { Link } from 'react-router-dom';
 import { useCurrentUser } from '@/auth/AuthContext';
 import { TrendLineChart } from '@/components/Charts';
 import { ErrorState } from '@/components/feedback';
-import { PageHeader } from '@/components/PageHeader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
 import { formatDate, formatDateTime } from '@/lib/utils';
 import { ChildSwitcher, useActiveChild } from './ChildSwitcher';
+import { AnimatedValue } from '@/components/motion';
+import { WelcomeBanner } from '@/components/WelcomeBanner';
 
 /** A card that loads its own endpoint, so a slow or failed card does not hold up the others. */
 function DashboardCard<T>({
@@ -41,11 +42,7 @@ function DashboardCard<T>({
       </CardHeader>
       <CardContent className="flex-1">
         {query.isPending ? (
-          <div
-            className="h-20 animate-pulse rounded-md bg-muted"
-            role="status"
-            aria-label="Loading"
-          />
+          <div className="skeleton h-20" role="status" aria-label="Loading" />
         ) : query.isError ? (
           <ErrorState error={query.error} onRetry={() => void query.refetch()} />
         ) : (
@@ -70,9 +67,11 @@ const Nothing = ({ text, icon: Icon = CheckCircle2 }: { text: string; icon?: Luc
   </p>
 );
 
-const BigNumber = ({ value, label }: { value: ReactNode; label: string }) => (
+const BigNumber = ({ value, label }: { value: string | number; label: string }) => (
   <div>
-    <p className="font-heading text-4xl font-bold">{value}</p>
+    <p className="font-heading text-4xl font-bold">
+      <AnimatedValue value={value} />
+    </p>
     <p className="text-sm text-muted-foreground">{label}</p>
   </div>
 );
@@ -211,11 +210,8 @@ export function AdminDashboardPage() {
 
   return (
     <>
-      <PageHeader
-        title={`Welcome, ${user.firstName}`}
-        description="Your institution at a glance."
-      />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <WelcomeBanner firstName={user.firstName} description="Your institution at a glance." />
+      <div className="stagger-children grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DashboardCard title="Students" query={students}>
           {(data) => (
             <div className="space-y-3">
@@ -334,8 +330,8 @@ export function TeacherDashboardPage() {
 
   return (
     <>
-      <PageHeader title={`Welcome, ${user.firstName}`} />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <WelcomeBanner firstName={user.firstName} />
+      <div className="stagger-children grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <DashboardCard title="Today's classes" query={today}>
           {(data) => <ClassList classes={data} />}
         </DashboardCard>
@@ -426,7 +422,7 @@ function StudentCards({ studentId, base }: { studentId: string; base: string }) 
   }>(`/dashboard/students/${studentId}/latest-result`);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+    <div className="stagger-children grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <DashboardCard title="Today's classes" query={today}>
         {(data) => <ClassList classes={data} />}
       </DashboardCard>
@@ -510,7 +506,9 @@ function StudentCards({ studentId, base }: { studentId: string; base: string }) 
                 label={`GPA, semester ${data.latest.semesterNumber}`}
               />
               <div className="text-right">
-                <p className="font-heading text-xl font-bold">{data.cgpa.toFixed(2)}</p>
+                <p className="font-heading text-xl font-bold">
+                  <AnimatedValue value={data.cgpa.toFixed(2)} />
+                </p>
                 <p className="text-sm text-muted-foreground">CGPA</p>
               </div>
             </div>
@@ -527,7 +525,7 @@ export function StudentDashboardPage() {
   const user = useCurrentUser();
   return (
     <>
-      <PageHeader title={`Welcome, ${user.firstName}`} />
+      <WelcomeBanner firstName={user.firstName} />
       <div className="space-y-4">
         {user.studentId && <StudentCards studentId={user.studentId} base="/student" />}
         <NoticeList path="/student/notices" />
@@ -541,8 +539,8 @@ export function ParentDashboardPage() {
   const { activeId, active, children, status } = useActiveChild();
   return (
     <>
-      <PageHeader
-        title={`Welcome, ${user.firstName}`}
+      <WelcomeBanner
+        firstName={user.firstName}
         description={
           active
             ? `${active.student.user.firstName} ${active.student.user.lastName}, ${active.student.program.code} Semester ${active.student.currentSection.semester.number}, Section ${active.student.currentSection.name}`
