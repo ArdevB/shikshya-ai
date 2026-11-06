@@ -43,7 +43,8 @@
       "@prisma/engines",
       "bcrypt",
       "esbuild",
-      "prisma"
+      "prisma",
+      "puppeteer"
     ]
   }
 }

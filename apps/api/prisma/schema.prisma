@@ -68,6 +68,9 @@ model User {
   notices       Notice[]            @relation("NoticeCreator")
   noticeReads   NoticeRead[]
   events        Event[]             @relation("EventCreator")
+  paymentsRecorded Payment[]        @relation("PaymentRecorder")
+  notifications Notification[]
+  notificationPreferences NotificationPreference[]
 
   @@index([role])
 }
@@ -110,6 +113,7 @@ model Program {
   students   Student[]
   notices    Notice[]
   events     Event[]
+  feeStructures FeeStructure[]
 
   @@index([departmentId])
 }
@@ -122,6 +126,7 @@ model AcademicYear {
   isCurrent Boolean  @default(false)
 
   semesters Semester[]
+  feeStructures FeeStructure[]
 }
 
 model Semester {
@@ -138,6 +143,7 @@ model Semester {
   timetable    TimetableEntry[]
   exams        Exam[]
   results      Result[]
+  invoices     Invoice[]
 
   @@unique([programId, academicYearId, number])
   @@index([programId])
@@ -237,6 +243,7 @@ model Student {
   marks             Mark[]
   results           Result[]
   submissions       Submission[]
+  invoices          Invoice[]
 
   @@index([programId])
   @@index([currentSectionId])
@@ -500,6 +507,7 @@ model Assignment {
   attachments      Json     @default("[]")
   createdById      String
   createdAt        DateTime @default(now())
+  dueReminderSentAt DateTime?
 
   courseOffering CourseOffering @relation(fields: [courseOfferingId], references: [id], onDelete: Cascade)
   createdBy      User           @relation("AssignmentCreator", fields: [createdById], references: [id], onDelete: Restrict)
@@ -568,6 +576,8 @@ model Notice {
   expiresAt   DateTime?
   createdById String
   createdAt   DateTime  @default(now())
+  /// When its notification went out. Scheduled notices wait for the job to send it.
+  notifiedAt  DateTime?
 
   program   Program?     @relation(fields: [programId], references: [id], onDelete: Cascade)
   section   Section?     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
@@ -608,4 +618,192 @@ model Event {
   createdBy User     @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([startAt])
+}
+
+// ---------- Phase 3: fees and payments. All money is integer paisa. ----------
+
+enum InvoiceStatus {
+  UNPAID
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum FineType {
+  FIXED
+  PER_DAY
+}
+
+enum PaymentMethod {
+  ESEWA
+  KHALTI
+  CASH
+  BANK
+}
+
+enum PaymentStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model FeeHead {
+  id   String @id @default(cuid())
+  name String
+  code String @unique
+
+  structureItems FeeStructureItem[]
+  invoiceItems   InvoiceItem[]
+}
+
+model FeeStructure {
+  id             String @id @default(cuid())
+  programId      String
+  semesterNumber Int
+  academicYearId String
+
+  program      Program            @relation(fields: [programId], references: [id], onDelete: Restrict)
+  academicYear AcademicYear       @relation(fields: [academicYearId], references: [id], onDelete: Restrict)
+  items        FeeStructureItem[]
+  invoices     Invoice[]
+
+  @@unique([programId, semesterNumber, academicYearId])
+}
+
+model FeeStructureItem {
+  id             String @id @default(cuid())
+  feeStructureId String
+  feeHeadId      String
+  amountPaisa    Int
+
+  feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id], onDelete: Cascade)
+  feeHead      FeeHead      @relation(fields: [feeHeadId], references: [id], onDelete: Restrict)
+
+  @@unique([feeStructureId, feeHeadId])
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  invoiceNumber  String        @unique
+  studentId      String
+  semesterId     String
+  /// Set for invoices generated in bulk. The unique rule below makes generating twice harmless.
+  feeStructureId String?
+  issueDate      DateTime      @db.Date
+  dueDate        DateTime      @db.Date
+  status         InvoiceStatus @default(UNPAID)
+  totalPaisa     Int
+  paidPaisa      Int           @default(0)
+  finePaisa      Int           @default(0)
+  discountPaisa  Int           @default(0)
+  createdAt      DateTime      @default(now())
+
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  semester     Semester      @relation(fields: [semesterId], references: [id], onDelete: Restrict)
+  feeStructure FeeStructure? @relation(fields: [feeStructureId], references: [id], onDelete: SetNull)
+  items        InvoiceItem[]
+  payments     Payment[]
+
+  @@unique([studentId, feeStructureId])
+  @@index([studentId])
+  @@index([semesterId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+model InvoiceItem {
+  id          String @id @default(cuid())
+  invoiceId   String
+  feeHeadId   String
+  description String
+  amountPaisa Int
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  feeHead FeeHead @relation(fields: [feeHeadId], references: [id], onDelete: Restrict)
+
+  @@index([invoiceId])
+}
+
+model FineRule {
+  id          String   @id @default(cuid())
+  name        String
+  type        FineType
+  amountPaisa Int
+  graceDays   Int      @default(0)
+  maxPaisa    Int?
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  invoiceId      String
+  amountPaisa    Int
+  method         PaymentMethod
+  status         PaymentStatus @default(INITIATED)
+  gatewayRef     String?
+  gatewayPayload Json?
+  receiptNumber  String?       @unique
+  paidAt         DateTime?
+  recordedById   String?
+  createdAt      DateTime      @default(now())
+
+  invoice    Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+  recordedBy User?   @relation("PaymentRecorder", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([invoiceId])
+  @@index([status])
+  @@index([paidAt])
+}
+
+/// Hands out the next number for invoices and receipts, one at a time, inside a transaction.
+model Counter {
+  name  String @id
+  value Int    @default(0)
+}
+
+// ---------- Phase 3: notifications and settings ----------
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  body      String
+  link      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+/// A missing row means enabled, so people get everything until they opt out.
+model NotificationPreference {
+  userId  String
+  channel NotificationChannel
+  type    String
+  enabled Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, channel, type])
+}
+
+/// A single row holding the institution's details, used on every PDF.
+model InstitutionSettings {
+  id            String  @id @default("default")
+  name          String
+  address       String
+  phone         String  @default("")
+  email         String  @default("")
+  principalName String  @default("")
+  logoDataUrl   String?
 }
