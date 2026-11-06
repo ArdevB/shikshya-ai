@@ -1,11 +1,19 @@
-import puppeteer, { type Browser } from 'puppeteer';
+import { createRequire } from 'node:module';
+import type { Browser } from 'puppeteer';
 import { env } from '../config/env.js';
 
 /** One browser, started on first use, because starting Chrome for every PDF is slow. */
 let browser: Promise<Browser> | null = null;
 
+function loadPuppeteer() {
+  // Loaded on first use, because it is heavy, and with require rather than import: under
+  // `tsx watch` on Windows, importing Puppeteer's ES module build freezes the whole process.
+  const require = createRequire(import.meta.url);
+  return (require('puppeteer') as typeof import('puppeteer')).default;
+}
+
 function getBrowser() {
-  browser ??= puppeteer.launch({
+  browser ??= loadPuppeteer().launch({
     // Containers usually need PUPPETEER_ARGS=--no-sandbox.
     args: env.PUPPETEER_ARGS ? env.PUPPETEER_ARGS.split(' ') : [],
   });

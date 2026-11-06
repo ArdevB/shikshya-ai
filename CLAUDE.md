@@ -70,6 +70,8 @@ pnpm build            # production builds
 # AI service, from apps/ai with its .venv active: pytest, ruff check .
 ```
 
+In `apps/api/src/pdf/render.ts`, Puppeteer must stay loaded through `require`, on first use. Importing its ES module build under `tsx watch` on Windows freezes the whole API. Do not switch `dev` to `node --watch` either: it also watches `node_modules`, and restarts the API in the middle of the first PDF.
+
 ## Definition of done (every phase)
 
 - All acceptance criteria in the phase file pass

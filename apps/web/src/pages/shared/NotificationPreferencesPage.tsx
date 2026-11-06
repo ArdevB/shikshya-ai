@@ -30,8 +30,24 @@ export function NotificationPreferencesPage() {
       type: NotificationType;
       enabled: boolean;
     }) => api.put<Preference[]>('/notifications/preferences', body),
+    // Tick the box straight away, and put it back if the save fails.
+    onMutate: async ({ channel, type, enabled }) => {
+      await queryClient.cancelQueries({ queryKey: KEY });
+      const previous = queryClient.getQueryData<Preference[]>(KEY);
+      queryClient.setQueryData<Preference[]>(KEY, (current) =>
+        current?.map((preference) =>
+          preference.type === type
+            ? { ...preference, [channel === 'EMAIL' ? 'email' : 'inApp']: enabled }
+            : preference,
+        ),
+      );
+      return { previous };
+    },
+    onError: (error, _body, context) => {
+      queryClient.setQueryData(KEY, context?.previous);
+      toast.error(error.message);
+    },
     onSuccess: (data) => queryClient.setQueryData(KEY, data),
-    onError: (error) => toast.error(error.message),
   });
 
   return (

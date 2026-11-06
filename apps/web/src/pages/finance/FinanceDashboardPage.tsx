@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Download, Receipt, TriangleAlert } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useCurrentUser } from '@/auth/AuthContext';
-import { TrendLineChart } from '@/components/Charts';
+import { CountBarChart } from '@/components/Charts';
 import { DataTable, Pagination } from '@/components/DataTable';
 import { EmptyState, ErrorState, LoadingRows } from '@/components/feedback';
 import { PageHeader } from '@/components/PageHeader';
@@ -85,12 +85,19 @@ export function FinanceDashboardPage() {
             {trend.isPending ? (
               <LoadingRows rows={3} />
             ) : trend.data?.length ? (
-              <TrendLineChart
-                ariaLabel="Money collected per day over the last 30 days, in rupees"
+              <CountBarChart
+                ariaLabel="Money collected per day over the last 30 days"
                 xHeader="Date"
                 valueHeader="Collected"
-                yDomain={[0, Math.ceil(Math.max(...trend.data.map((d) => d.totalPaisa)) / 100)]}
                 format={(rupees) => formatNpr(rupees * 100)}
+                // The axis has little room, so 150000 reads as 1.5L, the Nepali way.
+                formatTick={(rupees) =>
+                  rupees >= 100000
+                    ? `${rupees / 100000}L`
+                    : rupees >= 1000
+                      ? `${rupees / 1000}k`
+                      : String(rupees)
+                }
                 data={trend.data.map((d) => ({
                   name: d.date.slice(5),
                   value: d.totalPaisa / 100,

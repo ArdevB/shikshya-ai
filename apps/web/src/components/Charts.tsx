@@ -157,22 +157,37 @@ export function CountBarChart({
   ariaLabel,
   xHeader,
   valueHeader,
+  format = String,
+  formatTick,
 }: {
   data: { name: string; value: number }[];
   ariaLabel: string;
   xHeader: string;
   valueHeader: string;
+  /** How a value reads in the tooltip and table. */
+  format?: (value: number) => string;
+  /** A shorter form for the axis, for large numbers. */
+  formatTick?: (value: number) => string;
 }) {
   return (
     <div>
       <div className="h-56" role="img" aria-label={ariaLabel}>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 12, right: 8, bottom: 0, left: -24 }}>
+          <BarChart
+            data={data}
+            margin={{ top: 12, right: 8, bottom: 0, left: formatTick ? -8 : -24 }}
+          >
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={{ stroke: GRID }} />
-            <YAxis allowDecimals={false} tick={axisTick} tickLine={false} axisLine={false} />
+            <YAxis
+              allowDecimals={false}
+              tick={axisTick}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={formatTick}
+            />
             <Tooltip
-              content={<ChartTooltip format={(value) => String(value)} />}
+              content={<ChartTooltip format={format} />}
               cursor={{ fill: 'rgb(var(--primary-soft))' }}
             />
             <Bar
@@ -188,7 +203,7 @@ export function CountBarChart({
       <DataTableView
         label={xHeader}
         valueHeader={valueHeader}
-        rows={data.map((d) => ({ name: d.name, value: d.value }))}
+        rows={data.map((d) => ({ name: d.name, value: format(d.value) }))}
       />
     </div>
   );

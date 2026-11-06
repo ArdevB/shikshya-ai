@@ -4,13 +4,13 @@ An AI-powered management system for universities, colleges and schools in Nepal,
 
 The build is split into five phases, specified in [docs/phases](docs/phases). Conventions for contributors are in [CLAUDE.md](CLAUDE.md).
 
-| Phase | Scope                                                                         | Status |
-| ----- | ----------------------------------------------------------------------------- | ------ |
-| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done   |
-| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done   |
-| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Next   |
-| 4     | AI assistant, at-risk prediction, quiz and timetable generators               |        |
-| 5     | Testing, security hardening, deployment, documentation                        |        |
+| Phase | Scope                                                                         | Status                                                            |
+| ----- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done                                                              |
+| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done                                                              |
+| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Built, see [the sandbox check](#checking-payments-in-the-sandbox) |
+| 4     | AI assistant, at-risk prediction, quiz and timetable generators               |                                                                   |
+| 5     | Testing, security hardening, deployment, documentation                        |                                                                   |
 
 ## Project layout
 
@@ -127,6 +127,30 @@ The grade table lives in the database (`GradeScale`) so a college can adjust it.
 ## Files
 
 Uploads are limited to 10 MB each and to pdf, docx, pptx, zip, jpg and png. They are stored in `apps/api/uploads` behind a `StorageService` interface, so Phase 5 can switch to cloud storage. Every download goes through the API, which applies the same access rules as the record the file belongs to.
+
+## Fees and payments
+
+All money is stored as integer paisa. Staff type rupees, and the API converts them.
+
+- **Invoices** are generated per semester from its fee structure. Generating twice creates no duplicates.
+- **Fines** are recalculated from the due date by a daily job, so running it twice changes nothing.
+- **Online payments** go through one `PaymentGateway` interface, with eSewa and Khalti behind it. A redirect back from a gateway is never believed: the API asks the gateway directly, checks the amount matches exactly, and only then credits the invoice. Duplicate callbacks do nothing. A payment left unconfirmed is rechecked every 15 minutes and given up on after a day.
+- **Khalti** needs a key in `KHALTI_SECRET_KEY`. Until then, choosing it explains that it is not set up.
+
+### Checking payments in the sandbox
+
+Automated tests cover the payment logic against mocked gateway responses. A real sandbox payment has to be done by hand, because it means logging in on the gateway's own site:
+
+1. Start the app, log in as `student02@shikshya.test` and open **Fees**.
+2. **eSewa:** choose **Pay now → Pay with eSewa**, then log in on eSewa's test page with ID `9711111111`, password `Nepal@123`, MPIN `1122` and token `123456`.
+3. **Khalti:** first create a merchant account at <https://test-admin.khalti.com>, put its `live_secret_key` in `apps/api/.env` as `KHALTI_SECRET_KEY`, and restart. Then choose **Pay with Khalti** and use ID `9800000000`, MPIN `1111` and OTP `987654`.
+4. You should return to a "Payment successful" page where the receipt downloads, and the invoice should now show as paid.
+
+These test values come from [eSewa's](https://developer.esewa.com.np/pages/Epay) and [Khalti's](https://docs.khalti.com/khalti-epayment/) developer docs. For production, set your own keys and URLs in `apps/api/.env`.
+
+## Notifications
+
+Notifications appear in the app in real time and by email, and each person can turn types off under **Notification settings**. With no `SMTP_HOST` set, emails are logged rather than sent. To see real ones locally, run [Mailpit](https://mailpit.axllent.org/) and set `SMTP_HOST=localhost` and `SMTP_PORT=1025`. Scheduled jobs run inside the API process.
 
 ## Who can see what
 

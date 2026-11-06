@@ -60,7 +60,7 @@ export function receiptHtml(institution: Institution, payment: PaymentView, invo
       ['Invoice no.', invoice.invoiceNumber],
       ['Program', `${invoice.programCode}, Semester ${invoice.semesterNumber}`],
       ['Payment method', METHOD_LABEL[payment.method]],
-      ['Reference', payment.gatewayRef ?? '-'],
+      ['Reference', payment.gatewayRef || '-'],
     ])}
     <table class="totals">
       <tr class="grand"><td>Amount received</td><td class="num">${esc(formatNpr(payment.amountPaisa))}</td></tr>
