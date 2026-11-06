@@ -1,0 +1,9 @@
+dist
+node_modules
+coverage
+pnpm-lock.yaml
+.venv
+apps/api/prisma/migrations
+apps/api/.local-postgres
+docs/phases
+CLAUDE.md

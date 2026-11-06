@@ -1,0 +1,49 @@
+{
+  "name": "shikshya",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Shikshya: AI-powered university, school and college management system for Nepal",
+  "packageManager": "pnpm@10.34.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "postinstall": "pnpm --filter @shikshya/shared build && pnpm --filter @shikshya/api exec prisma generate",
+    "dev": "concurrently -n shared,api,web -c gray,cyan,magenta \"pnpm --filter @shikshya/shared dev\" \"pnpm --filter @shikshya/api dev\" \"pnpm --filter @shikshya/web dev\"",
+    "build": "pnpm --filter @shikshya/shared build && pnpm --filter @shikshya/api build && pnpm --filter @shikshya/web build",
+    "test": "pnpm --filter @shikshya/shared build && pnpm -r --workspace-concurrency=1 test",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "db:up": "docker compose up -d postgres",
+    "db:local": "pnpm --filter @shikshya/api db:local",
+    "db:migrate": "pnpm --filter @shikshya/api db:migrate",
+    "db:seed": "pnpm --filter @shikshya/api db:seed"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.39.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.5.0",
+    "prettier": "^3.6.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.46.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@embedded-postgres/darwin-arm64",
+      "@embedded-postgres/darwin-x64",
+      "@embedded-postgres/linux-arm64",
+      "@embedded-postgres/linux-x64",
+      "@embedded-postgres/windows-x64",
+      "@prisma/client",
+      "@prisma/engines",
+      "bcrypt",
+      "esbuild",
+      "prisma"
+    ]
+  }
+}

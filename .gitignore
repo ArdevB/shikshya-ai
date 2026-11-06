@@ -1,0 +1,29 @@
+node_modules/
+dist/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Secrets
+.env
+.env.local
+apps/*/.env
+
+# Local database created by `pnpm db:local`
+apps/api/.local-postgres/
+
+# Uploaded files
+uploads/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

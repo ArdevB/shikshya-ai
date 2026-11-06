@@ -1,0 +1,54 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/space-grotesk';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Brand tokens, as RGB channels so Tailwind's opacity modifiers work.
+ * Core palette: Sky Blue #0593C6, Hot Pink #D83995, White #FCFFFF.
+ */
+@layer base {
+  :root {
+    --background: 252 255 255; /* White #FCFFFF */
+    --card: 252 255 255;
+    --foreground: 11 43 58; /* Ink #0B2B3A */
+
+    --primary: 5 147 198; /* Sky Blue #0593C6 */
+    --primary-foreground: 252 255 255;
+    --primary-dark: 4 114 154; /* Sky Dark #04729A: small text, hover */
+    --primary-soft: 231 245 250; /* Tint of Sky Blue for backgrounds */
+
+    --accent: 216 57 149; /* Hot Pink #D83995 */
+    --accent-foreground: 252 255 255;
+    --accent-dark: 176 36 118; /* Pink Dark #B02476: small text */
+    --accent-soft: 252 236 245; /* Tint of Hot Pink for backgrounds */
+
+    --muted: 240 247 250;
+    --muted-foreground: 74 100 114; /* Muted #4A6472 */
+    --border: 213 230 237; /* Border #D5E6ED */
+    --destructive: 192 38 56; /* Reserved for errors and delete actions */
+
+    --radius: 0.625rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-heading tracking-tight;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+}

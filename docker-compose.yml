@@ -1,0 +1,22 @@
+# Local development services. Start with: pnpm db:up
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: shikshya-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: shikshya
+      POSTGRES_PASSWORD: shikshya
+      POSTGRES_DB: shikshya
+    ports:
+      - '5432:5432'
+    volumes:
+      - shikshya-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U shikshya']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  shikshya-postgres-data:
