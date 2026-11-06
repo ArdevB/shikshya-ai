@@ -322,7 +322,8 @@ model AttendanceRecord {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  actorId   String
+  /// Empty when the system did it: a gateway callback or a scheduled job.
+  actorId   String?
   action    String
   entity    String
   entityId  String
@@ -330,7 +331,7 @@ model AuditLog {
   after     Json?
   createdAt DateTime @default(now())
 
-  actor User @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  actor User? @relation(fields: [actorId], references: [id], onDelete: Restrict)
 
   @@index([entity, entityId])
   @@index([actorId])

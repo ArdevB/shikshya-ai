@@ -28,6 +28,20 @@ import {
   timeSlotRoutes,
   timetableRoutes,
 } from './routes/academics.routes.js';
+import {
+  feeHeadRoutes,
+  feeStructureRoutes,
+  financeReportRoutes,
+  fineRuleRoutes,
+  invoiceRoutes,
+  notificationRoutes,
+  paymentCallbackRoutes,
+  paymentRoutes,
+  pdfRoutes,
+  publicRoutes,
+  settingsRoutes,
+  studentPhotoRoutes,
+} from './routes/finance.routes.js';
 import { parentRoutes, statsRoutes, studentRoutes, teacherRoutes } from './routes/people.routes.js';
 
 /** Builds the Express app without listening, so tests can drive it directly. */
@@ -46,6 +60,8 @@ export function createApp() {
 
   const api = Router();
   api.use('/auth', authRoutes());
+  api.use('/payments/callback', paymentCallbackRoutes());
+  api.use('/public', publicRoutes());
 
   // Everything below here requires a logged-in user.
   api.use(requireAuth);
@@ -53,6 +69,7 @@ export function createApp() {
   api.use('/teachers', teacherRoutes());
   api.use('/students', studentAttendanceRoutes());
   api.use('/students', studentAcademicRoutes());
+  api.use('/students', studentPhotoRoutes());
   api.use('/students', studentRoutes());
   api.use('/parents', parentRoutes());
   api.use('/attendance', attendanceRoutes());
@@ -70,6 +87,15 @@ export function createApp() {
   api.use('/notices', noticeRoutes());
   api.use('/events', eventRoutes());
   api.use('/dashboard', dashboardRoutes());
+  api.use('/fee-heads', feeHeadRoutes());
+  api.use('/fee-structures', feeStructureRoutes());
+  api.use('/fine-rules', fineRuleRoutes());
+  api.use('/invoices', invoiceRoutes());
+  api.use('/payments', paymentRoutes());
+  api.use('/finance', financeReportRoutes());
+  api.use('/pdf', pdfRoutes());
+  api.use('/settings', settingsRoutes());
+  api.use('/notifications', notificationRoutes());
 
   app.use('/api/v1', api);
   app.use(notFoundHandler);

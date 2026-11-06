@@ -61,6 +61,7 @@ Every account uses the password `Shikshya@123`.
 | --------------------------- | -------------------------- |
 | Super admin                 | `superadmin@shikshya.test` |
 | Admin                       | `admin@shikshya.test`      |
+| Accountant                  | `accountant@shikshya.test` |
 | Teacher (1 to 4)            | `teacher1@shikshya.test`   |
 | Student (01 to 40)          | `student01@shikshya.test`  |
 | Student with low attendance | `student03@shikshya.test`  |

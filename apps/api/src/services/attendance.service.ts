@@ -16,6 +16,7 @@ import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import { todayInNepal } from '../lib/time.js';
 import type { CurrentUser } from '../middleware/auth.js';
+import { notifySafely, notifyStudentsAndParents } from './notification.service.js';
 import {
   assertCanAccessStudent,
   assertCanViewOffering,
@@ -38,6 +39,50 @@ async function assertRecordsMatchSection(sectionId: string, records: AttendanceR
     throw badRequest('Some students are not enrolled in this section', {
       studentIds: ids.filter((id) => !enrolledIds.has(id)),
     });
+  }
+}
+
+/**
+ * Tells a student and their parents the moment their attendance in a course falls below the
+ * line, by comparing it with and without this session. They hear once when it crosses, rather
+ * than after every class while it stays low.
+ */
+export async function notifyAttendanceDrops(
+  sessionId: string,
+  offeringId: string,
+  previous: Map<string, AttendanceStatus>,
+) {
+  const records = await prisma.attendanceRecord.findMany({
+    where: { session: { courseOfferingId: offeringId } },
+    select: { studentId: true, sessionId: true, status: true },
+  });
+  const offering = await prisma.courseOffering.findUniqueOrThrow({
+    where: { id: offeringId },
+    select: { course: { select: { code: true, title: true } } },
+  });
+
+  const byStudent = new Map<string, typeof records>();
+  for (const record of records) {
+    byStudent.set(record.studentId, [...(byStudent.get(record.studentId) ?? []), record]);
+  }
+
+  for (const [studentId, own] of byStudent) {
+    if (!own.some((record) => record.sessionId === sessionId)) continue;
+    const after = calculateAttendance(own.map((r) => r.status as AttendanceStatus));
+    const earlier = own
+      .filter((r) => r.sessionId !== sessionId)
+      .map((r) => r.status as AttendanceStatus);
+    const before = calculateAttendance([
+      ...earlier,
+      ...(previous.has(studentId) ? [previous.get(studentId) as AttendanceStatus] : []),
+    ]);
+    if (after.belowThreshold && !before.belowThreshold) {
+      await notifyStudentsAndParents([studentId], 'ATTENDANCE_LOW', {
+        title: 'Attendance below 75%',
+        body: `Attendance in ${offering.course.code} ${offering.course.title} is now ${after.percentage}%.`,
+        path: 'attendance',
+      });
+    }
   }
 }
 
@@ -68,7 +113,7 @@ export async function createSession(user: CurrentUser, body: AttendanceSessionBo
     });
   }
 
-  return prisma.$transaction(async (tx) => {
+  const created = await prisma.$transaction(async (tx) => {
     const session = await tx.attendanceSession.create({
       data: {
         courseOfferingId: body.offeringId,
@@ -91,6 +136,8 @@ export async function createSession(user: CurrentUser, body: AttendanceSessionBo
     );
     return session;
   });
+  await notifySafely(() => notifyAttendanceDrops(created.id, body.offeringId, new Map()));
+  return created;
 }
 
 /** Teachers may edit their own sessions for 48 hours; admins may edit any session at any time. */
@@ -121,7 +168,7 @@ export async function updateSession(
   const snapshot = (records: { studentId: string; status: string; remark?: string | null }[]) =>
     records.map(({ studentId, status, remark }) => ({ studentId, status, remark: remark ?? null }));
 
-  return prisma.$transaction(async (tx) => {
+  const updated = await prisma.$transaction(async (tx) => {
     await tx.attendanceRecord.deleteMany({ where: { sessionId } });
     await tx.attendanceRecord.createMany({
       data: body.records.map((record) => ({ ...record, sessionId })),
@@ -142,6 +189,14 @@ export async function updateSession(
       include: { records: true },
     });
   });
+  await notifySafely(() =>
+    notifyAttendanceDrops(
+      sessionId,
+      session.courseOfferingId,
+      new Map(session.records.map((r) => [r.studentId, r.status as AttendanceStatus])),
+    ),
+  );
+  return updated;
 }
 
 export async function listSessions(

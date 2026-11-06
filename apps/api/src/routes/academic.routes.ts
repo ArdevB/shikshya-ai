@@ -12,6 +12,7 @@ import {
   sectionListQuery,
   semesterBody,
   semesterListQuery,
+  type Role,
 } from '@shikshya/shared';
 import { Router } from 'express';
 import type { ZodTypeAny, z } from 'zod';
@@ -28,16 +29,18 @@ interface CrudService<Q, B> {
 }
 
 /**
- * The academic resources all behave the same: any logged-in user may read them,
- * and only admins may change them. Rules specific to a resource live in its service.
+ * These resources all behave the same: by default any logged-in user may read them and only
+ * admins may change them, unless other roles are given. Other rules live in each service.
  */
 export function crudRouter<QS extends ZodTypeAny, BS extends ZodTypeAny>(
   service: CrudService<z.output<QS>, z.output<BS>>,
   querySchema: QS,
   bodySchema: BS,
+  roles: { writers?: readonly Role[]; readers?: readonly Role[] } = {},
 ) {
   const router = Router();
-  const adminOnly = requireRole(...ADMIN_ROLES);
+  const adminOnly = requireRole(...(roles.writers ?? ADMIN_ROLES));
+  if (roles.readers) router.use(requireRole(...roles.readers));
 
   router.get('/', async (req, res) => {
     res.json(await service.list(parseQuery(req, querySchema)));

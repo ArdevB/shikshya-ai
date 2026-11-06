@@ -22,6 +22,8 @@ export default defineConfig({
       JWT_REFRESH_SECRET: 'test-refresh-secret-test-refresh-secret',
       WEB_ORIGIN: 'http://localhost:5173',
       UPLOAD_DIR: join(tmpdir(), 'shikshya-test-uploads'),
+      KHALTI_SECRET_KEY: 'test-khalti-key',
+      SMTP_HOST: '',
     },
   },
 });

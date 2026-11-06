@@ -2,7 +2,8 @@ import { Prisma } from '@prisma/client';
 import { prisma } from './prisma.js';
 
 interface AuditEntry {
-  actorId: string;
+  /** Null when the system did it: a gateway callback or a scheduled job. */
+  actorId: string | null;
   action: string;
   entity: string;
   entityId: string;

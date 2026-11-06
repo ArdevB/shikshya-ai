@@ -56,6 +56,15 @@ export async function canAccessStudent(user: CurrentUser, studentId: string): Pr
   }
 }
 
+export const isFinanceStaff = (user: CurrentUser) => user.role === 'ACCOUNTANT' || isAdmin(user);
+
+/** Fees: the student, their parents, and the accounts office. Teachers have no reason to see them. */
+export async function canAccessFinance(user: CurrentUser, studentId: string) {
+  if (isFinanceStaff(user)) return true;
+  if (user.role === 'STUDENT' || user.role === 'PARENT') return canAccessStudent(user, studentId);
+  return false;
+}
+
 export async function assertCanAccessStudent(user: CurrentUser, studentId: string) {
   if (!(await canAccessStudent(user, studentId))) throw forbidden();
 }

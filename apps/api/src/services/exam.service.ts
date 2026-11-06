@@ -12,6 +12,7 @@ import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import type { CurrentUser } from '../middleware/auth.js';
 import { recomputeSemesterResults } from './grading.js';
+import { notifySafely, notifyStudentsAndParents } from './notification.service.js';
 import { assertCanViewOffering, isAdmin, teachesOffering } from './scope.js';
 
 const examInclude = {
@@ -353,6 +354,21 @@ export async function publishExam(user: CurrentUser, examId: string) {
     },
     { timeout: 60_000 },
   );
+  await notifySafely(async () => {
+    const results = await prisma.result.findMany({
+      where: { semesterId: exam.semesterId },
+      select: { studentId: true },
+    });
+    await notifyStudentsAndParents(
+      results.map((r) => r.studentId),
+      'RESULT_PUBLISHED',
+      {
+        title: 'Results published',
+        body: `Results for ${exam.name} are now available.`,
+        path: 'results',
+      },
+    );
+  });
   return getExam(examId);
 }
 

@@ -11,6 +11,7 @@ import { forbidden, notFound } from '../lib/errors.js';
 import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import type { CurrentUser } from '../middleware/auth.js';
+import { notifyNoticeAudience, notifySafely } from './notification.service.js';
 import { isAdmin } from './scope.js';
 
 /** The conditions under which a notice or event reaches this user. Empty means "everything". */
@@ -208,6 +209,8 @@ export async function createNotice(user: CurrentUser, body: NoticeBody) {
     },
     include: noticeInclude(user.id),
   });
+  // A notice scheduled for later is announced by the scheduled job when its time comes.
+  if (row.publishAt <= new Date()) await notifySafely(() => notifyNoticeAudience(row));
   return toNoticeView(row);
 }
 

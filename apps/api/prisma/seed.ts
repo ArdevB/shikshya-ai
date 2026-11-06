@@ -159,6 +159,17 @@ async function main() {
     data: account('admin', 'ADMIN', 'Shanta', 'Regmi'),
   });
   await prisma.gradeScale.createMany({ data: TU_GRADE_SCALE });
+  await prisma.user.create({ data: account('accountant', 'ACCOUNTANT', 'Bimala', 'Khadka') });
+  await prisma.institutionSettings.create({
+    data: {
+      id: 'default',
+      name: 'Shikshya Demo College',
+      address: 'Baneshwor, Kathmandu, Nepal',
+      phone: '+977 1 4000000',
+      email: 'info@shikshya.test',
+      principalName: 'Dr. Shanta Regmi',
+    },
+  });
 
   const department = await prisma.department.create({
     data: { name: 'Computer Science', code: 'CS' },
@@ -638,6 +649,113 @@ async function main() {
     });
   }
 
+  // ---------- Fees: invoices for everyone, some paid, some part paid, some overdue ----------
+
+  const feeHeads = await Promise.all(
+    [
+      { name: 'Tuition', code: 'TUITION', paisa: 4500000 },
+      { name: 'Exam', code: 'EXAM', paisa: 300000 },
+      { name: 'Library', code: 'LIBRARY', paisa: 100000 },
+      { name: 'Lab', code: 'LAB', paisa: 250000 },
+    ].map(async ({ paisa, ...data }) => ({ head: await prisma.feeHead.create({ data }), paisa })),
+  );
+  const structure = await prisma.feeStructure.create({
+    data: {
+      programId: csit.id,
+      academicYearId: year.id,
+      semesterNumber: 6,
+      items: {
+        create: feeHeads.map(({ head, paisa }) => ({ feeHeadId: head.id, amountPaisa: paisa })),
+      },
+    },
+  });
+  const totalPaisa = feeHeads.reduce((sum, { paisa }) => sum + paisa, 0);
+  await prisma.fineRule.create({
+    data: { name: 'Late fee', type: 'PER_DAY', amountPaisa: 5000, graceDays: 7, maxPaisa: 200000 },
+  });
+
+  const accountantUser = await prisma.user.findUniqueOrThrow({
+    where: { email: `accountant@${EMAIL_DOMAIN}` },
+  });
+  const year4 = today.getUTCFullYear();
+  const invoiceNumber = (n: number) => `SHK-${year4}-${String(n).padStart(6, '0')}`;
+  const receiptNumber = (n: number) => `RCP-${year4}-${String(n).padStart(6, '0')}`;
+  let receipts = 0;
+
+  for (const [index, student] of students.entries()) {
+    // Half paid in full, a few part paid, the rest unpaid. Every 8th is well past its due date.
+    const overdue = index % 8 === 7;
+    const paidPaisa = index % 2 === 0 ? totalPaisa : index % 5 === 0 ? 2000000 : 0;
+    const dueDate = addDays(today, overdue ? -20 : 25);
+    const fine = overdue && paidPaisa < totalPaisa ? 5000 * 13 : 0;
+    const status =
+      paidPaisa >= totalPaisa ? 'PAID' : overdue ? 'OVERDUE' : paidPaisa > 0 ? 'PARTIAL' : 'UNPAID';
+
+    const invoice = await prisma.invoice.create({
+      data: {
+        invoiceNumber: invoiceNumber(index + 1),
+        studentId: student.id,
+        semesterId: semester6.id,
+        feeStructureId: structure.id,
+        issueDate: addDays(today, -35),
+        dueDate,
+        status,
+        totalPaisa,
+        paidPaisa,
+        finePaisa: fine,
+        items: {
+          create: feeHeads.map(({ head, paisa }) => ({
+            feeHeadId: head.id,
+            description: head.name,
+            amountPaisa: paisa,
+          })),
+        },
+      },
+    });
+    if (paidPaisa > 0) {
+      receipts += 1;
+      await prisma.payment.create({
+        data: {
+          invoiceId: invoice.id,
+          amountPaisa: paidPaisa,
+          method: (['ESEWA', 'KHALTI', 'CASH', 'BANK'] as const)[index % 4]!,
+          status: 'SUCCESS',
+          receiptNumber: receiptNumber(receipts),
+          // Spread over the last few weeks, for the collections chart.
+          paidAt: addDays(new Date(), -(index % 24)),
+          recordedById: index % 4 >= 2 ? accountantUser.id : null,
+        },
+      });
+    }
+  }
+  await prisma.counter.createMany({
+    data: [
+      { name: `SHK-${year4}`, value: students.length },
+      { name: `RCP-${year4}`, value: receipts },
+    ],
+  });
+
+  // A couple of notifications, so the bell has something to show.
+  const firstStudent = students[0]!;
+  await prisma.notification.createMany({
+    data: [
+      {
+        userId: firstStudent.userId,
+        type: 'RESULT_PUBLISHED',
+        title: 'Results published',
+        body: 'Results for First Term are now available.',
+        link: '/student/results',
+      },
+      {
+        userId: firstStudent.userId,
+        type: 'ASSIGNMENT_CREATED',
+        title: 'New assignment',
+        body: 'CSC364: "Requirements document for a library system".',
+        link: '/student/assignments',
+      },
+    ],
+  });
+
   console.log('\nSeed complete.');
   console.log(
     `  ${students.length} students, ${teachers.length} teachers, ${offerings.length} offerings, ${placed.length} timetable entries, ${sessionCount} attendance sessions\n`,
@@ -646,6 +764,7 @@ async function main() {
   console.table([
     { role: 'Super admin', email: `superadmin@${EMAIL_DOMAIN}` },
     { role: 'Admin', email: `admin@${EMAIL_DOMAIN}` },
+    { role: 'Accountant', email: `accountant@${EMAIL_DOMAIN}` },
     { role: 'Teacher (1 to 4)', email: `teacher1@${EMAIL_DOMAIN}` },
     { role: 'Student (01 to 40)', email: `student01@${EMAIL_DOMAIN}` },
     { role: 'Student below 75%', email: `student03@${EMAIL_DOMAIN}` },

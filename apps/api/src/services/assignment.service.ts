@@ -16,6 +16,7 @@ import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import { findFile, storage } from '../lib/storage.js';
 import type { CurrentUser } from '../middleware/auth.js';
+import { notifySafely, notifyStudentsAndParents } from './notification.service.js';
 import { assertCanAccessStudent, canAccessStudent, isAdmin, teachesOffering } from './scope.js';
 
 const filesOf = (value: Prisma.JsonValue) => value as unknown as StoredFile[];
@@ -101,6 +102,24 @@ export async function createAssignment(
       createdById: user.id,
     },
     include: teacherInclude,
+  });
+  await notifySafely(async () => {
+    const enrolled = await prisma.enrollment.findMany({
+      where: {
+        status: 'ACTIVE',
+        section: { offerings: { some: { id: body.courseOfferingId } } },
+      },
+      select: { studentId: true },
+    });
+    await notifyStudentsAndParents(
+      enrolled.map((e) => e.studentId),
+      'ASSIGNMENT_CREATED',
+      {
+        title: 'New assignment',
+        body: `${row.courseOffering.course.code}: "${row.title}".`,
+        path: 'assignments',
+      },
+    );
   });
   return toTeacherView(row);
 }

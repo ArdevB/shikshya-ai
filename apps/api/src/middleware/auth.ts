@@ -42,7 +42,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
 }
 
 /** Only allows the listed roles. Use after requireAuth. */
-export function requireRole(...roles: Role[]) {
+export function requireRole(...roles: readonly Role[]) {
   return (req: Request, _res: Response, next: NextFunction) => {
     if (!req.user) throw unauthorized();
     if (!roles.includes(req.user.role)) throw forbidden();

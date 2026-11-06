@@ -120,11 +120,6 @@ export async function notifyNoticeAudience(notice: {
   sectionId: string | null;
   createdById: string;
 }) {
-  const parentsOfStudents = {
-    parent: { children: { some: { student: {} } } },
-  };
-  void parentsOfStudents;
-
   const where = (() => {
     switch (notice.audience) {
       case 'STUDENTS':
