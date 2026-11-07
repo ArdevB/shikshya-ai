@@ -2,7 +2,7 @@
 
 An AI-powered management system for universities, colleges and schools in Nepal, with TU-style GPA grading and eSewa/Khalti payments. It is also a BSc. CSIT academic project.
 
-The build is split into five phases, specified in [docs/phases](docs/phases). Conventions for contributors are in [CLAUDE.md](CLAUDE.md).
+The build is split into five phases, specified in [docs/phases](docs/phases).
 
 | Phase | Scope                                                                         | Status                                 |
 | ----- | ----------------------------------------------------------------------------- | -------------------------------------- |

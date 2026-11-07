@@ -28,6 +28,10 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Kept on this computer only, not on GitHub
+.claude/
+.github/
 CLAUDE.md
+
 # Regenerate with: python -m ml.generate_synthetic
 apps/ai/ml/data/

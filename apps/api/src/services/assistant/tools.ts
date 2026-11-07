@@ -300,7 +300,11 @@ export const ASSISTANT_TOOLS: AssistantTool[] = [
       type: 'object',
       properties: {
         courseCode: { type: 'string', description: 'The course, like CSC364.' },
-        sectionName: { type: 'string', description: 'The section, like A.' },
+        sectionName: {
+          type: 'string',
+          description:
+            'The section, like A. Only if the person named one. Never guess it: leave it out, and the result says if there are several.',
+        },
       },
     },
     schema: sectionAttendanceSchema,

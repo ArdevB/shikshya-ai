@@ -32,13 +32,20 @@ def generate_json(prompt: str, schema: dict) -> tuple[str, LlmUsage]:
     model = llm_model()
     started = time.monotonic()
     try:
-        interaction = genai.Client(api_key=api_key).interactions.create(
-            model=model,
-            input=prompt,
-            # Nothing needs to be continued later, so Google has no reason to keep it.
-            store=False,
-            response_format={"type": "text", "mime_type": "application/json", "schema": schema},
-        )
+        # Kept in a "with" for the whole call. The SDK closes a client as soon as nothing refers to
+        # it, and client.interactions does not count, so an unnamed client is closed too early.
+        with genai.Client(api_key=api_key) as client:
+            interaction = client.interactions.create(
+                model=model,
+                input=prompt,
+                # Nothing needs to be continued later, so Google has no reason to keep it.
+                store=False,
+                response_format={
+                    "type": "text",
+                    "mime_type": "application/json",
+                    "schema": schema,
+                },
+            )
     except Exception as error:  # The SDK raises many types. All of them mean the same thing here.
         raise LlmFailed(str(error)) from error
 

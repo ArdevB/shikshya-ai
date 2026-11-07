@@ -1,5 +1,6 @@
 """Shikshya AI service: risk prediction, quiz generation and timetable generation."""
 
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, UploadFile, status
@@ -18,6 +19,8 @@ from app.quiz import (
 from app.risk import RiskFeatures, RiskResult, predict
 from app.security import require_internal_key
 from timetable.solver import TimetableRequest, TimetableResult, solve
+
+logger = logging.getLogger("shikshya.ai")
 
 app = FastAPI(title="Shikshya AI service", version="0.4.0")
 
@@ -64,6 +67,8 @@ def _llm_error(error: Exception) -> HTTPException:
         return HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "AI_NOT_CONFIGURED")
     if isinstance(error, QuizGenerationFailed):
         return HTTPException(status.HTTP_502_BAD_GATEWAY, "AI_INVALID_OUTPUT")
+    # The API only receives a short code, so the actual reason has to be recorded here.
+    logger.error("Gemini call failed: %s", error)
     return HTTPException(status.HTTP_502_BAD_GATEWAY, "AI_UNAVAILABLE")
 
 
