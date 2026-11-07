@@ -26,7 +26,7 @@ const prisma = new PrismaClient().$extends({
       },
     },
   },
-});
+}) as unknown as PrismaClient;
 
 const DEMO_PASSWORD = 'Shikshya@123';
 const EMAIL_DOMAIN = 'shikshya.test';

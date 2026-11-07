@@ -42,6 +42,9 @@ export async function retryOnConnectionError<T>(
  * The database is reached across the internet, so a connection does sometimes drop. Reads simply
  * try again, and nobody notices. Writes do not, because a write that failed to report back may
  * still have happened, so those reach the person as "please try again" and they decide.
+ *
+ * The extension changes behaviour only, not the client's API, so it keeps the plain client's type.
+ * Prisma's extended type cannot be passed where its transaction type is expected, and services do.
  */
 export const prisma = new PrismaClient().$extends({
   name: 'retry-reads',
@@ -54,4 +57,4 @@ export const prisma = new PrismaClient().$extends({
       },
     },
   },
-});
+}) as unknown as PrismaClient;
