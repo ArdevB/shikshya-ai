@@ -111,6 +111,42 @@ export function factorText(feature: string, value: number): string {
 }
 
 /**
+ * The model ranks whatever is below typical, which can be perfectly fine: 75% attendance meets the
+ * requirement, and a drop of half a point means nothing. These are the levels worth a teacher's time.
+ */
+export function isWorthMentioning(feature: string, value: number): boolean {
+  switch (feature) {
+    case 'attendance_pct':
+      return value < ATTENDANCE_THRESHOLD_PERCENT;
+    case 'attendance_trend':
+      return value <= -5;
+    case 'internal_exam_pct':
+      return value < 60;
+    case 'submission_rate_pct':
+      return value < 90;
+    case 'avg_assignment_pct':
+      return value < 60;
+    case 'late_rate_pct':
+      return value >= 25;
+    case 'previous_gpa':
+      return value < 2.5;
+    default:
+      return true;
+  }
+}
+
+/** The reasons to show. A flagged student always gets at least one, the model's strongest. */
+export function reasonsFrom(factors: { feature: string; value: number }[]): RiskFactorView[] {
+  const worthMentioning = factors.filter((factor) =>
+    isWorthMentioning(factor.feature, factor.value),
+  );
+  return (worthMentioning.length ? worthMentioning : factors.slice(0, 1)).map((factor) => ({
+    feature: factor.feature,
+    text: factorText(factor.feature, factor.value),
+  }));
+}
+
+/**
  * What a student is told. It offers one thing they can do, and never mentions a risk label or
  * prediction: that is for teachers, and being told "you are at risk" can do its own harm.
  */
@@ -297,10 +333,7 @@ export async function computeRiskPredictions(now = new Date(), actorId: string |
     const result = response.results[index]!;
     const earlier = previousRows.get(`${item.studentId}|${item.offeringId}`);
     const worse = earlier !== undefined && levelRank[result.level] > levelRank[earlier.level];
-    const factors: RiskFactorView[] = result.topFactors.map((factor) => ({
-      feature: factor.feature,
-      text: factorText(factor.feature, factor.value),
-    }));
+    const factors = reasonsFrom(result.topFactors);
     const data = {
       probability: result.probability,
       level: result.level,

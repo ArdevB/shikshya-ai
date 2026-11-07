@@ -313,10 +313,18 @@ export async function generateTimetable(
   };
 }
 
-const clashText = (type: string, entry: TimetableProposalEntry | undefined) =>
-  entry
-    ? `${type} clash on ${DAY_NAMES[entry.dayOfWeek]} at ${entry.startTime} (${entry.courseCode}, section ${entry.sectionName})`
-    : `${type} clash`;
+function clashText(type: string, entry: TimetableProposalEntry | undefined) {
+  if (!entry) return 'Two classes clash';
+  const when = `${DAY_NAMES[entry.dayOfWeek]} at ${entry.startTime}`;
+  switch (type) {
+    case 'ROOM':
+      return `${entry.roomName} has two classes on ${when}, including ${entry.courseCode}`;
+    case 'TEACHER':
+      return `${entry.teacherName} has two classes on ${when}, including ${entry.courseCode}`;
+    default:
+      return `Section ${entry.sectionName} has two classes on ${when}, including ${entry.courseCode}`;
+  }
+}
 
 /** For checking a change while reviewing, before anything is saved. */
 export async function checkPlacements(body: TimetableApplyBody) {

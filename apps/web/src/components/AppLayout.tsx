@@ -457,7 +457,7 @@ export function AppLayout() {
             ref={main}
             id="main"
             tabIndex={-1}
-            className="flex-1 p-4 pb-24 focus-visible:ring-0 focus-visible:ring-offset-0 md:p-8"
+            className="flex-1 p-4 pb-24 focus-visible:ring-0 focus-visible:ring-offset-0 md:p-8 md:pb-24"
           >
             {/* The boundary sits outside the keyed page, so moving between pages keeps the old one
               on screen until the new one is ready, rather than flashing a loading state. */}

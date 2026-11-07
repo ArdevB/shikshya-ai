@@ -47,6 +47,7 @@ Each kind of problem adds to a penalty, and the solver minimises the weighted to
 | Keep a lab's periods back to back | Lab periods with no adjacent lab period | 5 |
 | Spread a course's theory periods across days | Periods beyond the first in one day | 4 |
 | Avoid gaps in a section's day | Empty slots with classes both before and after | 3 |
+| Spread a section's week across its days | Periods in a day beyond a fair share of the week | 2 |
 
 The weights are a judgement call, and easy to change. A teacher on their feet too long counts for more than a short gap for students.
 
@@ -83,10 +84,9 @@ The solver's word is not taken for it. Two independent checks run:
 
 ## Results on the demo data
 
-For Semester 6, with 12 classes across 2 sections, 4 teachers, 5 rooms and 36 time slots, it placed 48 periods in about one second. The result was proven optimal, with a penalty of 0 and no clashes.
+For Semester 6, with 12 classes across 2 sections, 4 teachers, 5 rooms and 36 time slots, it places 48 periods in a few seconds, with no clashes.
 
 ## Limitations
 
-- It balances within the rules above, but does not spread a section's whole week evenly, so a section can have some full days and some light ones. A further soft rule could change this.
 - It treats all teachers' preferences equally, and has no idea of preferred times, only unavailable ones.
 - Reaching a proven optimum may take much longer on a large college. It would then return the best found in 30 seconds.

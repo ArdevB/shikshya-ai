@@ -133,9 +133,11 @@ export function AssistantChat({
     bottom.current?.scrollIntoView({ block: 'end' });
   }, [messages, sending]);
 
+  // The box only exists once the status has loaded, so focusing any earlier would do nothing.
+  const ready = status.data?.configured === true;
   useEffect(() => {
-    if (autoFocus) input.current?.focus();
-  }, [autoFocus]);
+    if (autoFocus && ready) input.current?.focus();
+  }, [autoFocus, ready]);
 
   const send = async (text: string) => {
     const message = text.trim();

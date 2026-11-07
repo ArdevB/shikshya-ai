@@ -379,9 +379,10 @@ function ScoreLine({ proposal, clashes }: { proposal: TimetableProposal; clashes
     { label: 'Long teaching runs', value: score?.longRuns ?? 0 },
     { label: 'Gaps in a day', value: score?.gaps ?? 0 },
     { label: 'Split labs', value: score?.splitLabs ?? 0 },
+    { label: 'Periods past a fair day', value: score?.unevenDays ?? 0 },
   ];
   return (
-    <dl className="stagger-children grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+    <dl className="stagger-children grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-7">
       {items.map((item) => (
         <div key={item.label} className="rounded-xl border bg-card p-3">
           <dt className="text-xs text-muted-foreground">{item.label}</dt>

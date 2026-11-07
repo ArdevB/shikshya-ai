@@ -3,6 +3,7 @@ import {
   computeFeatures,
   computeRiskPredictions,
   factorText,
+  reasonsFrom,
   supportMessage,
 } from '../src/services/risk.service.js';
 import { api, bearer, createFixture, prisma, resetDatabase, tokenFor } from './helpers.js';
@@ -136,6 +137,29 @@ describe('what people are told', () => {
       'Attendance fell 15 points in the last two weeks',
     );
     expect(factorText('previous_gpa', 2.1)).toBe("Last semester's GPA was 2.10");
+  });
+
+  it('leaves out reasons that are not really concerns', () => {
+    const texts = (factors: { feature: string; value: number }[]) =>
+      reasonsFrom(factors).map((reason) => reason.text);
+    expect(
+      texts([
+        { feature: 'internal_exam_pct', value: 22 },
+        { feature: 'attendance_pct', value: 75 },
+        { feature: 'attendance_trend', value: -0.4 },
+      ]),
+    ).toEqual(['Internal exam marks are 22%']);
+    expect(texts([{ feature: 'attendance_trend', value: -17 }])).toEqual([
+      'Attendance fell 17 points in the last two weeks',
+    ]);
+  });
+
+  it('still gives a flagged student one reason, the strongest', () => {
+    const reasons = reasonsFrom([
+      { feature: 'previous_gpa', value: 2.9 },
+      { feature: 'attendance_pct', value: 80 },
+    ]);
+    expect(reasons.map((reason) => reason.feature)).toEqual(['previous_gpa']);
   });
 
   const features = {
@@ -760,7 +784,7 @@ describe('timetable generator', () => {
   const solved = (placements = [placement(0), placement(1), placement(2)]) => ({
     status: 'OPTIMAL',
     placements,
-    score: { penalty: 0, sameDayRepeats: 0, longRuns: 0, gaps: 0, splitLabs: 0 },
+    score: { penalty: 0, sameDayRepeats: 0, longRuns: 0, gaps: 0, splitLabs: 0, unevenDays: 0 },
     unsatisfiable: [],
     solveSeconds: 0.1,
   });
@@ -862,7 +886,7 @@ describe('timetable generator', () => {
       .set(bearer(admin))
       .send({ semesterId: fx.semester.id, placements: [placement(0), placement(0, 1)] });
     expect(response.status).toBe(409);
-    expect(response.body.error.message).toContain('clash');
+    expect(response.body.error.message).toContain('has two classes');
     expect(await prisma.timetableEntry.count()).toBe(0);
   });
 

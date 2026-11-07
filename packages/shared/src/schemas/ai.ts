@@ -374,6 +374,7 @@ export interface TimetableProposal {
     longRuns: number;
     gaps: number;
     splitLabs: number;
+    unevenDays: number;
   } | null;
   /** Plain reasons why no timetable could be made. */
   unsatisfiable: { code: string; message: string }[];

@@ -5,6 +5,16 @@ import multer from 'multer';
 import { ApiError } from '../lib/errors.js';
 import { isConnectionError } from '../lib/prisma.js';
 
+const inUse = () =>
+  new ApiError(409, 'IN_USE', 'This record is linked to other records. Remove those first.');
+
+/**
+ * Postgres 18 reports a delete blocked by ON DELETE RESTRICT as 23001. Older versions said 23503,
+ * which Prisma turns into P2003. Prisma 6 does not know the new code, so it arrives unrecognised.
+ */
+const isRestrictViolation = (error: unknown) =>
+  error instanceof Prisma.PrismaClientUnknownRequestError && /\b23001\b/.test(error.message);
+
 function fromPrismaError(error: Prisma.PrismaClientKnownRequestError): ApiError | null {
   if (isConnectionError(error)) {
     console.error(`Database connection problem: ${error.code}`);
@@ -21,11 +31,7 @@ function fromPrismaError(error: Prisma.PrismaClientKnownRequestError): ApiError 
       return new ApiError(409, 'CONFLICT', `A record with this ${fields} already exists`);
     }
     case 'P2003':
-      return new ApiError(
-        409,
-        'IN_USE',
-        'This record is linked to other records. Remove those first.',
-      );
+      return inUse();
     case 'P2025':
       return new ApiError(404, 'NOT_FOUND', 'Record not found');
     default:
@@ -51,7 +57,9 @@ export function errorHandler(
       ? error
       : error instanceof Prisma.PrismaClientKnownRequestError
         ? fromPrismaError(error)
-        : error instanceof multer.MulterError
+        : isRestrictViolation(error)
+          ? inUse()
+          : error instanceof multer.MulterError
           ? new ApiError(
               400,
               'UPLOAD_REJECTED',

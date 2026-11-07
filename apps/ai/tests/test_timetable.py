@@ -150,6 +150,28 @@ def test_lab_periods_run_back_to_back() -> None:
     assert abs(int(first[3]) - int(second[3])) == 1
 
 
+def test_a_section_week_is_spread_across_its_days() -> None:
+    # 12 periods over 6 days should not fill some days and leave others empty.
+    request = scenario(
+        offerings=[
+            Offering(id="a1", sectionId="A", teacherId="t1", courseCode="C1", theoryPeriods=4),
+            Offering(id="a2", sectionId="A", teacherId="t2", courseCode="C2", theoryPeriods=4),
+            Offering(id="a3", sectionId="A", teacherId="t3", courseCode="C3", theoryPeriods=4),
+        ],
+        teachers=[Teacher(id=f"t{n}", name=f"T{n}") for n in (1, 2, 3)],
+        rooms=[Room(id="r1", name="Room 1", type="CLASSROOM", capacity=45)],
+        sections=[Section(id="A", name="A", size=40)],
+    )
+    result = solve(request)
+    assert result.score is not None
+    assert result.score.unevenDays == 0
+    per_day: dict[str, int] = defaultdict(int)
+    for placement in result.placements:
+        per_day[placement.timeSlotId[:2]] += 1
+    assert len(per_day) == 6
+    assert max(per_day.values()) == 2
+
+
 def test_a_lab_is_not_treated_as_continuous_across_a_break() -> None:
     # 08:40-09:30 and 09:50-10:40 have a break between them, so only the morning pairs are together.
     request = scenario(

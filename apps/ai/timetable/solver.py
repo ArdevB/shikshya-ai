@@ -8,6 +8,7 @@ penalty for the solver to make as small as it can in the time allowed.
 """
 
 from collections import defaultdict
+from math import ceil
 from typing import Literal
 
 from ortools.sat.python import cp_model
@@ -18,6 +19,7 @@ WEIGHT_SAME_DAY = 4
 WEIGHT_LONG_RUN = 6
 WEIGHT_GAP = 3
 WEIGHT_SPLIT_LAB = 5
+WEIGHT_UNEVEN_DAY = 2
 
 MAX_CONSECUTIVE = 3
 DEFAULT_TIME_LIMIT_SECONDS = 30.0
@@ -98,6 +100,7 @@ class Score(BaseModel):
     longRuns: int  # noqa: N815
     gaps: int
     splitLabs: int  # noqa: N815
+    unevenDays: int  # noqa: N815
 
 
 class TimetableResult(BaseModel):
@@ -307,6 +310,21 @@ def solve(request: TimetableRequest) -> TimetableResult:
                 model.add(gap >= before + after - occupied[index] - 1)
                 gaps.append(gap)
 
+    # Soft: a section's classes spread across the week, not some days full and others empty. Each
+    # period past a fair share of the week counts.
+    uneven_days: list[cp_model.IntVar] = []
+    for section in request.sections:
+        total = sum(
+            offering.theoryPeriods + offering.labPeriods
+            for offering in request.offerings
+            if offering.sectionId == section.id
+        )
+        fair_share = ceil(total / len(days)) if days else 0
+        for day, slots in days.items():
+            over = model.new_int_var(0, len(slots), f"over|{section.id}|{day}")
+            model.add(over >= sum(section_busy[(section.id, day)]) - fair_share)
+            uneven_days.append(over)
+
     # Soft: a section's lab periods come in back-to-back runs. Each isolated lab period costs.
     split_labs: list[cp_model.IntVar] = []
     for offering in request.offerings:
@@ -335,6 +353,7 @@ def solve(request: TimetableRequest) -> TimetableResult:
         + WEIGHT_LONG_RUN * sum(long_runs)
         + WEIGHT_GAP * sum(gaps)
         + WEIGHT_SPLIT_LAB * sum(split_labs)
+        + WEIGHT_UNEVEN_DAY * sum(uneven_days)
     )
 
     solver = cp_model.CpSolver()
@@ -377,6 +396,7 @@ def solve(request: TimetableRequest) -> TimetableResult:
             longRuns=count(long_runs),
             gaps=count(gaps),
             splitLabs=count(split_labs),
+            unevenDays=count(uneven_days),
         ),
     )
 
