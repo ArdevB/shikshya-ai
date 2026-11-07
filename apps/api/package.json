@@ -17,7 +17,7 @@
     "db:reset": "prisma migrate reset --force",
     "khalti:check": "tsx --env-file=.env scripts/check-khalti.ts",
     "ai:check": "tsx --env-file=.env scripts/check-ai.ts",
-    "docs:generate": "tsx --env-file-if-exists=.env scripts/generate-docs.ts"
+    "docs:generate": "tsx --env-file=.env scripts/generate-docs.ts"
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"

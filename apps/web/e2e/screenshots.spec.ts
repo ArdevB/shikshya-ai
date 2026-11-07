@@ -57,10 +57,10 @@ test.describe('screenshots', () => {
     const semester = page.getByRole('combobox').first();
     await choose(semester, /Semester 6|Sem 6/);
     await page.getByRole('button', { name: 'Generate' }).click();
-    // The Save button only appears once there is a timetable to save.
-    const save = page.getByRole('button', { name: 'Save', exact: true });
-    await expect(save).toBeVisible({ timeout: 60_000 });
-    await page.getByText('Clashes', { exact: true }).scrollIntoViewIfNeeded();
+    // This figure only appears once there is a timetable to show.
+    const placed = page.getByText('Classes placed', { exact: true });
+    await expect(placed).toBeVisible({ timeout: 60_000 });
+    await placed.scrollIntoViewIfNeeded();
     await shot(page, 'admin-timetable-generator');
   });
 

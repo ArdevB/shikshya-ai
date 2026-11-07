@@ -34,9 +34,7 @@ function schemasFromSource() {
       mounts.push([mount[1] ?? '', mount[2] ?? '']);
     }
     // Groups written as a list: ['/courses', crudRouter(academic.courses, query, body)].
-    for (const crud of source.matchAll(
-      /\[\s*'([^']*)',\s*crudRouter\([\w.]+,\s*(\w+),\s*(\w+)/g,
-    )) {
+    for (const crud of source.matchAll(/\[\s*'([^']*)',\s*crudRouter\([\w.]+,\s*(\w+),\s*(\w+)/g)) {
       const name = `crud:${crud[1]}`;
       mounts.push([crud[1] ?? '', name]);
       byFactory.set(name, crudSchemas(crud[2] ?? '', crud[3] ?? ''));
@@ -166,12 +164,24 @@ function whoCanCall(cells: string[] | undefined) {
 
 const AREAS: [string, RegExp][] = [
   ['Login and sessions', /^\/auth/],
-  ['Academic structure', /^\/(departments|programs|academic-years|semesters|courses|course-offerings)|^\/sections(\/:id)?$/],
+  [
+    'Academic structure',
+    /^\/(departments|programs|academic-years|semesters|courses|course-offerings)|^\/sections(\/:id)?$/,
+  ],
   ['People', /^\/(teachers|parents)|^\/students(\/import|\/:id|\/:id\/photo)?$/],
   ['Attendance', /^\/(attendance|offerings)|^\/students\/:id\/attendance/],
-  ['Timetable and rooms', /^\/(rooms|time-slots|timetable\/|timetable$)|^\/students\/:id\/timetable/],
-  ['Exams and results', /^\/(exams|exam-subjects)|^\/sections\/:id\/results|^\/students\/:id\/results/],
-  ['Assignments and materials', /^\/(assignments|submissions|materials)|^\/students\/:id\/(assignments|materials)/],
+  [
+    'Timetable and rooms',
+    /^\/(rooms|time-slots|timetable\/|timetable$)|^\/students\/:id\/timetable/,
+  ],
+  [
+    'Exams and results',
+    /^\/(exams|exam-subjects)|^\/sections\/:id\/results|^\/students\/:id\/results/,
+  ],
+  [
+    'Assignments and materials',
+    /^\/(assignments|submissions|materials)|^\/students\/:id\/(assignments|materials)/,
+  ],
   ['Notices and events', /^\/(notices|events)/],
   ['Dashboards', /^\/(dashboard|stats)/],
   ['Fees', /^\/(fee-heads|fee-structures|fine-rules|invoices|finance)/],
@@ -236,24 +246,70 @@ ${sections.join('\n')}`;
 // ---------- docs/database.md ----------
 
 const MODEL_GROUPS: [string, string[]][] = [
-  ['People and access', ['User', 'RefreshToken', 'Teacher', 'Student', 'Parent', 'ParentStudent', 'AuditLog']],
-  ['Academic structure', ['Department', 'Program', 'AcademicYear', 'Semester', 'Section', 'Course', 'CourseOffering', 'Enrollment']],
+  [
+    'People and access',
+    ['User', 'RefreshToken', 'Teacher', 'Student', 'Parent', 'ParentStudent', 'AuditLog'],
+  ],
+  [
+    'Academic structure',
+    [
+      'Department',
+      'Program',
+      'AcademicYear',
+      'Semester',
+      'Section',
+      'Course',
+      'CourseOffering',
+      'Enrollment',
+    ],
+  ],
   ['Attendance', ['AttendanceSession', 'AttendanceRecord']],
   ['Timetable', ['Room', 'TimeSlot', 'TimetableEntry', 'TeacherUnavailability']],
   ['Exams and results', ['Exam', 'ExamSubject', 'Mark', 'GradeScale', 'Result', 'ResultCourse']],
   ['Assignments and materials', ['Assignment', 'Submission', 'Material']],
-  ['Notices and notifications', ['Notice', 'NoticeRead', 'Event', 'Notification', 'NotificationPreference']],
-  ['Fees and payments', ['FeeHead', 'FeeStructure', 'FeeStructureItem', 'Invoice', 'InvoiceItem', 'FineRule', 'Payment', 'Counter', 'InstitutionSettings']],
-  ['AI features', ['ChatConversation', 'ChatMessage', 'PolicyDocument', 'PolicyChunk', 'RiskPrediction', 'Quiz', 'QuizQuestion', 'QuizAttempt', 'QuizAnswer', 'AiCallLog']],
+  [
+    'Notices and notifications',
+    ['Notice', 'NoticeRead', 'Event', 'Notification', 'NotificationPreference'],
+  ],
+  [
+    'Fees and payments',
+    [
+      'FeeHead',
+      'FeeStructure',
+      'FeeStructureItem',
+      'Invoice',
+      'InvoiceItem',
+      'FineRule',
+      'Payment',
+      'Counter',
+      'InstitutionSettings',
+    ],
+  ],
+  [
+    'AI features',
+    [
+      'ChatConversation',
+      'ChatMessage',
+      'PolicyDocument',
+      'PolicyChunk',
+      'RiskPrediction',
+      'Quiz',
+      'QuizQuestion',
+      'QuizAttempt',
+      'QuizAnswer',
+      'AiCallLog',
+    ],
+  ],
 ];
 
 type Model = (typeof Prisma.dmmf.datamodel.models)[number];
 
 function relationLine(model: Model, field: Model['fields'][number]) {
   const child = field.isRequired ? '||' : '|o';
-  const many = field.relationFromFields?.some((name) =>
-    model.uniqueFields.some((unique) => unique.length === 1 && unique[0] === name) ||
-    model.fields.some((other) => other.name === name && other.isUnique),
+  const many = field.relationFromFields?.some(
+    (name) =>
+      model.uniqueFields.some((unique) => unique.length === 1 && unique[0] === name) ||
+      model.fields.some((other) => other.name === name && other.isUnique),
   );
   return `  ${field.type} ${child}--${many ? 'o|' : 'o{'} ${model.name} : "${field.name}"`;
 }
@@ -263,7 +319,9 @@ function ownRelations(model: Model) {
 }
 
 function entity(model: Model) {
-  const foreignKeys = new Set(ownRelations(model).flatMap((field) => field.relationFromFields ?? []));
+  const foreignKeys = new Set(
+    ownRelations(model).flatMap((field) => field.relationFromFields ?? []),
+  );
   const lines = model.fields
     .filter((field) => field.kind !== 'object')
     .map((field) => {

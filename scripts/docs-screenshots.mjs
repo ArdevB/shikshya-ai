@@ -17,11 +17,15 @@ const python = join(
   '.venv',
   process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python',
 );
-const ai = spawn(python, ['-m', 'uvicorn', 'app.main:app', '--port', '4199', '--log-level', 'warning'], {
-  cwd: join(root, 'apps', 'ai'),
-  env: { ...process.env, INTERNAL_KEY: 'e2e-internal-key', GEMINI_API_KEY: '' },
-  stdio: 'inherit',
-});
+const ai = spawn(
+  python,
+  ['-m', 'uvicorn', 'app.main:app', '--port', '4199', '--log-level', 'warning'],
+  {
+    cwd: join(root, 'apps', 'ai'),
+    env: { ...process.env, INTERNAL_KEY: 'e2e-internal-key', GEMINI_API_KEY: '' },
+    stdio: 'inherit',
+  },
+);
 
 let ready = false;
 for (let attempt = 0; attempt < 80 && !ready; attempt += 1) {
@@ -32,12 +36,16 @@ for (let attempt = 0; attempt < 80 && !ready; attempt += 1) {
 }
 
 const run = ready
-  ? spawnSync('pnpm exec playwright test --config apps/web/e2e/playwright.config.ts screenshots', {
-      cwd: root,
-      shell: true,
-      stdio: 'inherit',
-      env: { ...process.env, SCREENSHOTS: '1' },
-    })
+  ? spawnSync(
+      // Anything after the command is passed on, such as -g admin for one group of pictures.
+      `pnpm exec playwright test --config apps/web/e2e/playwright.config.ts screenshots ${process.argv.slice(2).join(' ')}`,
+      {
+        cwd: root,
+        shell: true,
+        stdio: 'inherit',
+        env: { ...process.env, SCREENSHOTS: '1' },
+      },
+    )
   : { status: 1 };
 if (!ready) console.error('The AI service did not start.');
 

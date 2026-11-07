@@ -1,26 +1,68 @@
 # Shikshya
 
-An AI-powered management system for universities, colleges and schools in Nepal, with TU-style GPA grading and eSewa/Khalti payments. It is also a BSc. CSIT academic project.
+A college management system for Nepal, with TU-style GPA grading, eSewa and Khalti payments, and AI features that keep people in charge. Students, teachers, parents and staff each work from the same information, and each sees only what they should.
 
-The build is split into five phases, specified in [docs/phases](docs/phases).
+It is also a BSc. CSIT academic project, so it is built to be easy to explain. Start with [docs/architecture.md](docs/architecture.md).
 
-| Phase | Scope                                                                         | Status                                 |
-| ----- | ----------------------------------------------------------------------------- | -------------------------------------- |
-| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done                                   |
-| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done                                   |
-| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Done                                   |
-| 4     | AI assistant, at-risk prediction, quiz and timetable generators               | Built. See [AI features](#ai-features) |
-| 5     | Testing, security hardening, deployment, documentation                        |                                        |
+![The Shikshya homepage](docs/screenshots/home.png)
 
-## Project layout
+|                                                                  |                                                                                             |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| ![A student's dashboard](docs/screenshots/student-dashboard.png) | ![The assistant answering from a student's records](docs/screenshots/student-assistant.png) |
+| ![Taking attendance](docs/screenshots/teacher-attendance.png)    | ![The timetable generator](docs/screenshots/admin-timetable-generator.png)                  |
+
+## What it does
+
+- **Academics:** programs, semesters, sections, courses, timetables and clash detection.
+- **Attendance:** taken in seconds on a phone, with automatic warnings below 75%.
+- **Exams:** marks entry, GPA and CGPA on the TU scale, marksheets, transcripts and ID cards as PDFs.
+- **Coursework:** assignments, submissions, class materials and quizzes.
+- **Fees:** invoices, fines, eSewa and Khalti, manual payments, receipts and reports.
+- **Communication:** targeted notices, events, and live and email notifications.
+- **AI:** an assistant that answers from each person's own records, early warnings about struggling students, quiz drafts from a teacher's notes, and a timetable solver. See [AI features](#ai-features).
+
+Seven roles: super admin, admin, teacher, student, parent, accountant and librarian. A test makes a real request for [every route as every role](docs/permissions.md).
+
+## How it fits together
+
+```mermaid
+flowchart LR
+  browser["Browser<br/>React"] --> api["API<br/>Node.js, Express, Prisma"]
+  api --> db[("PostgreSQL 18<br/>with pgvector")]
+  api -->|"internal key"| ai["AI service<br/>FastAPI, scikit-learn, OR-Tools"]
+  api --> gateways["eSewa and Khalti"]
+  api --> gemini["Google Gemini"]
+  ai --> gemini
+```
 
 ```
 apps/web         React + Vite frontend
+apps/web/e2e     Browser tests with Playwright
 apps/api         Express + Prisma API
-apps/ai          FastAPI service (health check only until Phase 4)
-packages/shared  Zod schemas, types and the attendance calculation, shared by web and api
-docs/phases      The specification for each phase
+apps/ai          FastAPI service: at-risk model, quiz generation, timetable solver
+packages/shared  Zod schemas, types and calculations, shared by web and api
+load             Load test with k6
+docs             Everything below
 ```
+
+## Documentation
+
+| Read this                                    | For                                                                                                                                                                                     |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [docs/user-manual.md](docs/user-manual.md)   | How to use it, for each role, with pictures                                                                                                                                             |
+| [docs/architecture.md](docs/architecture.md) | The system, and how login, payment and the assistant work                                                                                                                               |
+| [docs/diagrams.md](docs/diagrams.md)         | Report diagrams: use case, DFD, class, activity and Gantt                                                                                                                               |
+| [docs/database.md](docs/database.md)         | Every table, with ER diagrams                                                                                                                                                           |
+| [docs/api.md](docs/api.md)                   | Every API route                                                                                                                                                                         |
+| [docs/permissions.md](docs/permissions.md)   | Who may call each route                                                                                                                                                                 |
+| [docs/security.md](docs/security.md)         | What protects the system                                                                                                                                                                |
+| [docs/test-cases.md](docs/test-cases.md)     | Test cases in report format                                                                                                                                                             |
+| [docs/performance.md](docs/performance.md)   | Measurements and load tests                                                                                                                                                             |
+| [docs/deployment.md](docs/deployment.md)     | Putting it online                                                                                                                                                                       |
+| [docs/backup.md](docs/backup.md)             | Backing up and restoring                                                                                                                                                                |
+| [docs/algorithms](docs/algorithms)           | [GPA](docs/algorithms/gpa.md), [the risk model](docs/algorithms/risk-model.md), [the timetable solver](docs/algorithms/timetable.md) and [college-rules search](docs/algorithms/rag.md) |
+| [docs/ai-demo.md](docs/ai-demo.md)           | A walk-through of the AI features, for a demo                                                                                                                                           |
+| [docs/phases](docs/phases)                   | The original specification, in five phases                                                                                                                                              |
 
 ## Run it locally
 
@@ -80,24 +122,44 @@ Admins can import students from a CSV file under **Students → Import CSV**, wh
 
 ## Commands
 
-| Command             | What it does                                                   |
-| ------------------- | -------------------------------------------------------------- |
-| `pnpm dev`          | Runs the web app (5173), API (4000) and AI service (8000)      |
-| `pnpm test`         | Runs all tests. Starts its own throwaway Postgres              |
-| `pnpm lint`         | ESLint and the Prettier check                                  |
-| `pnpm format`       | Formats the code with Prettier                                 |
-| `pnpm typecheck`    | Type-checks every workspace                                    |
-| `pnpm build`        | Production builds                                              |
-| `pnpm db:migrate`   | Applies database migrations, creating new ones as needed       |
-| `pnpm db:seed`      | Replaces the database with demo data (refused in production)   |
-| `pnpm khalti:check` | Shows what Khalti says to a small test payment                 |
-| `pnpm ai:check`     | Tries Gemini and the AI service for real, using a little quota |
+| Command                 | What it does                                                                |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `pnpm dev`              | Runs the web app (5173), API (4000) and AI service (8000)                   |
+| `pnpm test`             | Runs all tests. Starts its own throwaway Postgres                           |
+| `pnpm coverage`         | The same, with coverage reports                                             |
+| `pnpm e2e`              | Browser journeys on the production build, with their own ports and database |
+| `pnpm lint`             | ESLint and the Prettier check                                               |
+| `pnpm format`           | Formats the code with Prettier                                              |
+| `pnpm typecheck`        | Type-checks every workspace                                                 |
+| `pnpm build`            | Production builds                                                           |
+| `pnpm db:migrate`       | Applies database migrations, creating new ones as needed                    |
+| `pnpm db:seed`          | Replaces the database with demo data (refused in production)                |
+| `pnpm db:backup`        | Saves a copy of the database to `backups/`                                  |
+| `pnpm docs:generate`    | Rewrites `docs/api.md` and `docs/database.md` from the code                 |
+| `pnpm docs:screenshots` | Retakes the pictures in the user manual                                     |
+| `pnpm khalti:check`     | Shows what Khalti says to a small test payment                              |
+| `pnpm ai:check`         | Tries Gemini and the AI service for real, using a little quota              |
 
-In `apps/ai`, with its `.venv` active: `pytest`, `ruff check .`, and `python -m ml.train` to retrain the at-risk model.
+In `apps/ai`, with its `.venv` active: `pytest`, `pytest --cov=app --cov=timetable --cov=ml`, `ruff check .`, `pip-audit -r requirements.txt`, and `python -m ml.train` to retrain the at-risk model.
 
 ## Settings
 
-Settings for the API are in `apps/api/.env`, described in [apps/api/.env.example](apps/api/.env.example). The web app works with no settings in development, because Vite forwards `/api` to the API; see [apps/web/.env.example](apps/web/.env.example).
+Settings for the API are in `apps/api/.env`, and each one is explained in [apps/api/.env.example](apps/api/.env.example). The ones you are most likely to need:
+
+| Setting                                   | Needed for                                            | Without it                                                          |
+| ----------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------- |
+| `DATABASE_URL`                            | Everything                                            | The API will not start                                              |
+| `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET` | Logging in                                            | The API will not start                                              |
+| `WEB_ORIGIN`                              | The browser reaching the API                          | Defaults to `http://localhost:5173`                                 |
+| `INTERNAL_KEY`                            | The API talking to the AI service                     | At-risk, quiz and timetable features say the service is not running |
+| `GEMINI_API_KEY`                          | The assistant, quizzes and meaning-based rules search | Those features say they are not set up                              |
+| `KHALTI_SECRET_KEY`                       | Paying with Khalti                                    | The payment dialog shows Khalti as not available                    |
+| `SMTP_HOST` and others                    | Sending real email                                    | Emails are logged instead                                           |
+| `STORAGE_DRIVER`, `S3_*`                  | Keeping uploads in cloud storage                      | Files are kept on this computer's disk                              |
+
+In production, the API refuses to start if a setting is missing or unsafe, and lists them all. See [docs/deployment.md](docs/deployment.md).
+
+The web app works with no settings in development, because Vite forwards `/api` to the API. See [apps/web/.env.example](apps/web/.env.example).
 
 ## Getting around
 
@@ -152,7 +214,7 @@ The grade table lives in the database (`GradeScale`) so a college can adjust it.
 
 ## Files
 
-Uploads are limited to 10 MB each and to pdf, docx, pptx, zip, jpg and png. They are stored in `apps/api/uploads` behind a `StorageService` interface, so Phase 5 can switch to cloud storage. Every download goes through the API, which applies the same access rules as the record the file belongs to.
+Uploads are limited to 10 MB each and to pdf, docx, pptx, zip, jpg and png, checked by each file's contents as well as its name. They are stored under random names behind a `StorageService` interface: on this computer's disk by default, or in S3-compatible storage with `STORAGE_DRIVER=s3`. Every download goes through the API, which applies the same access rules as the record the file belongs to.
 
 ## Fees and payments
 
@@ -184,8 +246,8 @@ Notifications appear in the app in real time and by email, and each person can t
 
 ## Who can see what
 
-Each API route declares which roles may call it, and services apply row-level rules on top: a student sees only their own records, a parent only their linked children, and a teacher only the sections they teach. Hiding a page in the web app is only a convenience. The API is what enforces access.
+Each API route declares which roles may call it, and services apply row-level rules on top: a student sees only their own records, a parent only their linked children, and a teacher only the sections they teach. Hiding a page in the web app is only a convenience. The API is what enforces access. [docs/permissions.md](docs/permissions.md) has the full table, which a test checks against the real API.
 
 ## Temporary passwords
 
-Accounts created by an admin get a temporary password, shown to the admin once, and must choose a new one at first login. Email delivery arrives with Phase 3.
+Accounts created by an admin get a temporary password, shown to the admin once, and must choose a new one at first login.
