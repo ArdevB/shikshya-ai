@@ -3,8 +3,17 @@ import type { ApiErrorBody } from '@shikshya/shared';
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import { ApiError } from '../lib/errors.js';
+import { isConnectionError } from '../lib/prisma.js';
 
 function fromPrismaError(error: Prisma.PrismaClientKnownRequestError): ApiError | null {
+  if (isConnectionError(error)) {
+    console.error(`Database connection problem: ${error.code}`);
+    return new ApiError(
+      503,
+      'DATABASE_UNAVAILABLE',
+      'The connection to the database dropped. Please try again.',
+    );
+  }
   switch (error.code) {
     case 'P2002': {
       const target = error.meta?.target;

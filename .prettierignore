@@ -7,3 +7,5 @@ apps/api/prisma/migrations
 apps/api/.local-postgres
 docs/phases
 CLAUDE.md
+.claude/skills
+skills-lock.json

@@ -101,6 +101,17 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
   return (await response.json()) as T;
 }
 
+/** For a response that arrives bit by bit. Errors before the first byte are still ordinary errors. */
+export async function openStream(path: string, body: unknown): Promise<Response> {
+  let response = await send(path, { method: 'POST', body });
+  if (response.status === 401) {
+    await refreshSession();
+    response = await send(path, { method: 'POST', body });
+  }
+  if (!response.ok) throw await toApiError(response);
+  return response;
+}
+
 export const api = {
   get: <T>(path: string) => request<T>(path),
   post: <T>(path: string, body?: unknown, options?: Pick<RequestOptions, 'skipRefresh'>) =>

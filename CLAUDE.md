@@ -18,10 +18,12 @@ The build is split into phases. Each phase has its own spec in `docs/phases/`:
 
 - **Monorepo:** pnpm workspaces — `apps/web`, `apps/api`, `apps/ai`, `packages/shared`
 - **Frontend (`apps/web`):** React 18 + Vite + TypeScript, Tailwind CSS, shadcn/ui, React Router, TanStack Query, React Hook Form + Zod, Recharts
-- **Backend (`apps/api`):** Node.js 20 + Express + TypeScript, Prisma ORM, PostgreSQL 16, Zod validation, JWT (access + refresh), bcrypt
-- **AI service (`apps/ai`):** Python 3.11 + FastAPI, scikit-learn, pandas; LLM calls via the Anthropic SDK (model configurable by env var)
+- **Backend (`apps/api`):** Node.js 20 + Express + TypeScript, Prisma ORM, PostgreSQL 18 with pgvector, Zod validation, JWT (access + refresh), bcrypt
+- **AI (`apps/ai` and `apps/api`):** Python 3.11 + FastAPI, scikit-learn, pandas, OR-Tools; LLM and embedding calls go to Google Gemini through its official SDKs, `google-genai` and `@google/genai` (models configurable by env var)
 - **Shared (`packages/shared`):** Zod schemas, TypeScript types and enums shared by web and api
-- **Local dev:** Docker Compose for Postgres (and later the AI service)
+- **Database:** Neon (hosted Postgres 18, Singapore) for development and deployment. `pnpm test` runs its own throwaway Postgres 18, which has no pgvector. Docker Compose stays as an optional alternative.
+
+Gemini's free tier may use prompts for product improvement and allows human review, and its terms forbid sending personal data to it. Its terms also bar apps likely to be used by under-18s, on any tier. So the free tier is for demos on fake seed data only; real student data needs billing enabled at least, and a school with under-18s needs another provider.
 
 ## Brand
 
@@ -59,17 +61,18 @@ Every API route declares which roles may call it. Row-level rules also apply: a 
 
 ```bash
 pnpm install          # install all workspaces (also builds shared, generates the Prisma client)
-pnpm db:up            # start Postgres with Docker, or...
-pnpm db:local         # ...start Postgres without Docker (leave it running)
+pnpm db:up            # optional: Postgres with pgvector in Docker, instead of Neon
+pnpm db:local         # optional: Postgres without Docker. It has no pgvector, so no vector search
 pnpm db:migrate       # prisma migrate dev
 pnpm db:seed          # replace the database with demo data
-pnpm dev              # run web + api together (web :5173, api :4000)
+pnpm dev              # run web, api and the AI service together (:5173, :4000, :8000)
 pnpm test             # run all tests (starts its own throwaway Postgres)
 pnpm lint             # eslint + prettier check
 pnpm format           # prettier --write
 pnpm typecheck        # tsc across workspaces
 pnpm build            # production builds
 pnpm khalti:check     # shows what Khalti says to a small test payment
+pnpm ai:check         # tries Gemini and the AI service for real, using a little quota
 # AI service, from apps/ai with its .venv active: pytest, ruff check .
 ```
 

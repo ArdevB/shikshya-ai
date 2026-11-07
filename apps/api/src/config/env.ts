@@ -34,6 +34,15 @@ const envSchema = z.object({
 
   // For example --no-sandbox inside a container.
   PUPPETEER_ARGS: z.string().optional(),
+
+  // Google Gemini. With no key, the assistant says it is not set up.
+  GEMINI_API_KEY: z.string().optional(),
+  LLM_MODEL: z.string().default('gemini-3.5-flash-lite'),
+  EMBEDDING_MODEL: z.string().default('gemini-embedding-001'),
+
+  // The Python AI service. INTERNAL_KEY is the secret it requires from this API.
+  AI_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+  INTERNAL_KEY: z.string().optional(),
 });
 
 function loadEnv() {

@@ -42,6 +42,21 @@ const TimetableEditorPage = page(
   'TimetableEditorPage',
 );
 
+const PoliciesPage = page(() => import('@/pages/admin/PoliciesPage'), 'PoliciesPage');
+const TimetableGeneratorPage = page(
+  () => import('@/pages/admin/TimetableGeneratorPage'),
+  'TimetableGeneratorPage',
+);
+const atRisk = () => import('@/pages/shared/AtRiskPage');
+const AdminAtRiskPage = page(atRisk, 'AdminAtRiskPage');
+const TeacherAtRiskPage = page(atRisk, 'TeacherAtRiskPage');
+const AssistantPage = page(() => import('@/pages/shared/AssistantPage'), 'AssistantPage');
+const TeacherQuizzesPage = page(() => import('@/pages/teacher/QuizzesPage'), 'TeacherQuizzesPage');
+const QuizReviewPage = page(() => import('@/pages/teacher/QuizReviewPage'), 'QuizReviewPage');
+const studentQuizzes = () => import('@/pages/student/StudentQuizzesPage');
+const StudentQuizzesPage = page(studentQuizzes, 'StudentQuizzesPage');
+const StudentQuizPage = page(studentQuizzes, 'StudentQuizPage');
+
 const FeeSetupPage = page(() => import('@/pages/finance/FeeSetupPage'), 'FeeSetupPage');
 const financeDashboard = () => import('@/pages/finance/FinanceDashboardPage');
 const FinanceDashboardPage = page(financeDashboard, 'FinanceDashboardPage');
@@ -121,6 +136,7 @@ export function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/assistant" element={<AssistantPage />} />
             <Route path="/change-password" element={<ChangePasswordPage />} />
             <Route path="/notifications/preferences" element={<NotificationPreferencesPage />} />
 
@@ -149,6 +165,9 @@ export function App() {
               <Route path="parents" element={<ParentsPage />} />
               <Route path="rooms" element={<RoomsPage />} />
               <Route path="timetable" element={<TimetableEditorPage />} />
+              <Route path="timetable-generator" element={<TimetableGeneratorPage />} />
+              <Route path="at-risk" element={<AdminAtRiskPage />} />
+              <Route path="policies" element={<PoliciesPage />} />
               <Route path="exams" element={<ExamsPage />} />
               <Route path="exams/:id" element={<ExamDetailPage />} />
               <Route path="results" element={<SectionResultsPage />} />
@@ -167,6 +186,9 @@ export function App() {
               <Route path="assignments" element={<TeacherAssignmentsPage />} />
               <Route path="assignments/:id" element={<SubmissionsPage />} />
               <Route path="materials" element={<TeacherMaterialsPage />} />
+              <Route path="quizzes" element={<TeacherQuizzesPage />} />
+              <Route path="quizzes/:id" element={<QuizReviewPage />} />
+              <Route path="at-risk" element={<TeacherAtRiskPage />} />
               <Route path="notices" element={<NoticesPage />} />
               <Route path="events" element={<EventsPage />} />
             </Route>
@@ -178,6 +200,8 @@ export function App() {
               <Route path="results" element={<StudentResultsPage />} />
               <Route path="assignments" element={<StudentAssignmentsPage />} />
               <Route path="materials" element={<StudentMaterialsPage />} />
+              <Route path="quizzes" element={<StudentQuizzesPage />} />
+              <Route path="quizzes/:id" element={<StudentQuizPage />} />
               <Route path="fees" element={<StudentFeesPage />} />
               <Route path="notices" element={<NoticesPage />} />
               <Route path="events" element={<EventsPage />} />

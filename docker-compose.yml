@@ -1,7 +1,8 @@
-# Local development services. Start with: pnpm db:up
+# Optional local Postgres, if you would rather not use Neon. Start with: pnpm db:up
 services:
   postgres:
-    image: postgres:16-alpine
+    # Postgres 18 with pgvector, matching the Neon database.
+    image: pgvector/pgvector:pg18
     container_name: shikshya-postgres
     restart: unless-stopped
     environment:
@@ -11,7 +12,8 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - shikshya-postgres-data:/var/lib/postgresql/data
+      # From Postgres 18 the official image keeps its data under this folder.
+      - shikshya-postgres-data:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U shikshya']
       interval: 5s

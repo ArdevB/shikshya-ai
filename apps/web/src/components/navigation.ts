@@ -12,6 +12,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   Coins,
+  FileQuestion,
+  HeartHandshake,
   DoorOpen,
   FileCheck2,
   Files,
@@ -21,13 +23,16 @@ import {
   PartyPopper,
   Receipt,
   School,
+  ScrollText,
   Settings,
+  Sparkles,
   Table2,
   User,
   UserCog,
   Users,
   UsersRound,
   Wallet,
+  Wand2,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -105,8 +110,21 @@ const ADMIN_GROUPS: NavGroup[] = [
     items: [
       { to: '/admin/rooms', label: 'Rooms & Time Slots', icon: DoorOpen },
       { to: '/admin/timetable', label: 'Timetable', icon: Table2, keywords: ['routine'] },
+      {
+        to: '/admin/timetable-generator',
+        label: 'Timetable generator',
+        icon: Wand2,
+        keywords: ['routine', 'schedule', 'automatic'],
+      },
       { to: '/admin/exams', label: 'Exams', icon: FileCheck2, keywords: ['publish', 'marks'] },
       { to: '/admin/results', label: 'Class results', icon: Award, keywords: ['gpa'] },
+      {
+        to: '/admin/at-risk',
+        label: 'Students needing attention',
+        short: 'Attention',
+        icon: HeartHandshake,
+        keywords: ['risk', 'at risk', 'struggling', 'failing'],
+      },
     ],
   },
   {
@@ -114,6 +132,12 @@ const ADMIN_GROUPS: NavGroup[] = [
     items: [
       { to: '/admin/notices', label: 'Notices', icon: Bell, badge: 'notices' },
       { to: '/admin/events', label: 'Events', icon: PartyPopper, keywords: ['calendar'] },
+      {
+        to: '/admin/policies',
+        label: 'College rules',
+        icon: ScrollText,
+        keywords: ['policy', 'policies', 'rulebook', 'assistant'],
+      },
     ],
   },
   { label: 'Finance', items: FINANCE_ITEMS },
@@ -122,6 +146,12 @@ const ADMIN_GROUPS: NavGroup[] = [
 const ACCOUNT_GROUP: NavGroup = {
   label: 'Account',
   items: [
+    {
+      to: '/assistant',
+      label: 'Assistant',
+      icon: Sparkles,
+      keywords: ['ai', 'chat', 'ask', 'help', 'gemini'],
+    },
     { to: '/profile', label: 'Profile', icon: User },
     {
       to: '/notifications/preferences',
@@ -192,6 +222,14 @@ const GROUPS_BY_ROLE: Partial<Record<Role, NavGroup[]>> = {
         { to: '/teacher/results', label: 'Class results', icon: Award, keywords: ['gpa'] },
         { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
         { to: '/teacher/materials', label: 'Materials', icon: BookOpenText, keywords: ['notes'] },
+        { to: '/teacher/quizzes', label: 'Quizzes', icon: FileQuestion, keywords: ['test', 'ai'] },
+        {
+          to: '/teacher/at-risk',
+          label: 'Students needing attention',
+          short: 'Attention',
+          icon: HeartHandshake,
+          keywords: ['risk', 'at risk', 'struggling', 'failing'],
+        },
       ],
     },
     {
@@ -231,6 +269,9 @@ const familyGroups = (base: string, own: boolean): NavGroup[] => [
       },
       { to: `${base}/assignments`, label: 'Assignments', icon: ClipboardList },
       { to: `${base}/materials`, label: 'Materials', icon: BookOpenText, keywords: ['notes'] },
+      ...(own
+        ? [{ to: `${base}/quizzes`, label: 'Quizzes', icon: FileQuestion, keywords: ['test'] }]
+        : []),
     ],
   },
   {

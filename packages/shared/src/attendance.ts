@@ -42,3 +42,13 @@ export function calculateAttendance(statuses: readonly AttendanceStatus[]): Atte
     belowThreshold: percentage !== null && percentage < ATTENDANCE_THRESHOLD_PERCENT,
   };
 }
+
+/**
+ * How many classes in a row a student must attend to reach the threshold. It solves
+ * (attended + n) / (total + n) >= threshold for the smallest whole n.
+ */
+export function classesNeededToReachThreshold(attended: number, total: number): number {
+  const threshold = ATTENDANCE_THRESHOLD_PERCENT / 100;
+  if (total === 0 || attended / total >= threshold) return 0;
+  return Math.ceil((threshold * total - attended) / (1 - threshold));
+}

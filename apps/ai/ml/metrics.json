@@ -1,0 +1,35 @@
+{
+  "trained_at": "2026-11-07T09:07:29.522675+00:00",
+  "rows": 8000,
+  "at_risk_share": 0.272125,
+  "model": "Logistic Regression",
+  "cross_validation": {
+    "Logistic Regression": {
+      "accuracy": 0.8528,
+      "precision": 0.6805,
+      "recall": 0.8657,
+      "f1": 0.762,
+      "f2": 0.821,
+      "roc_auc": 0.9326
+    },
+    "Random Forest": {
+      "accuracy": 0.8558,
+      "precision": 0.6911,
+      "recall": 0.8502,
+      "f1": 0.7624,
+      "f2": 0.8128,
+      "roc_auc": 0.9301
+    }
+  },
+  "alert_threshold": 0.5871,
+  "high_risk_threshold": 0.7935,
+  "target_recall": 0.82,
+  "test": {
+    "accuracy": 0.8681,
+    "precision": 0.7258,
+    "recall": 0.8276,
+    "f1": 0.7734,
+    "f2": 0.805,
+    "roc_auc": 0.9344
+  }
+}

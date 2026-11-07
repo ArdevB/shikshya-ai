@@ -18,12 +18,12 @@ Prerequisite: Phase 3 acceptance criteria pass. Read `CLAUDE.md` first.
 - [ ] FastAPI app with routers: `/predict`, `/quiz`, `/timetable`, `/health`
 - [ ] Only the Node API calls it (shared secret header `X-Internal-Key`); not exposed publicly
 - [ ] Add it to Docker Compose
-- [ ] Env: `ANTHROPIC_API_KEY`, `LLM_MODEL` (configurable — check the Anthropic docs for current model names), `INTERNAL_KEY`
+- [ ] Env: `GEMINI_API_KEY`, `LLM_MODEL` and `EMBEDDING_MODEL` (configurable — check the Gemini docs for current model names), `INTERNAL_KEY`
 - [ ] pytest set up; ruff for linting
 
 ## 1. Shikshya Assistant (chat)
 
-Lives in `apps/api` (Node, Anthropic TypeScript SDK) so it can call existing services directly.
+Lives in `apps/api` (Node, Google Gen AI SDK `@google/genai`) so it can call existing services directly.
 
 **Data models**
 ```
@@ -50,7 +50,7 @@ PolicyChunk      id, documentId, content, embedding (vector)   // pgvector exten
 - [ ] System prompt: identity ("Shikshya Assistant"), today's date in Asia/Kathmandu, user's name and role, answer only from tool results or rules, say "I don't know" otherwise, never reveal other users' data, short answers
 - [ ] Tool-calling loop with a max of 5 tool rounds per message
 - [ ] Stream responses to the frontend (SSE)
-- [ ] RAG: admin uploads policy PDFs → extract text → chunk (~800 tokens, overlap 100) → embed → store in pgvector. Pick an embedding provider (e.g. Voyage AI or a local sentence-transformers model in `apps/ai`) and document the choice
+- [ ] RAG: admin uploads policy PDFs → extract text → chunk (~800 tokens, overlap 100) → embed → store in pgvector. Embeddings come from Gemini (`gemini-embedding-001`, 768 dimensions), chosen by the project owner along with the LLM
 - [ ] Rate limit: 30 messages/user/hour; log token usage
 - [ ] UI: chat panel (floating button + full page), conversation history, suggested starter questions per role, show which tools were used ("Checked your attendance")
 

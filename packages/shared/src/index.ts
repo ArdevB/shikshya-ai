@@ -12,3 +12,4 @@ export * from './schemas/assignments.js';
 export * from './schemas/notices.js';
 export * from './finance.js';
 export * from './schemas/finance.js';
+export * from './schemas/ai.js';

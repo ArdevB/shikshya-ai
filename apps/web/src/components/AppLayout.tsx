@@ -33,6 +33,7 @@ import { PageSkeleton } from '@/components/feedback';
 import { Logo, LogoMark } from '@/components/Logo';
 import { TopProgressBar } from '@/components/motion';
 import { findNavTrail, navGroups, primaryNav, type NavItem } from '@/components/navigation';
+import { AssistantLauncher } from '@/components/assistant/AssistantLauncher';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
@@ -469,6 +470,7 @@ export function AppLayout() {
         </div>
 
         <BottomBar onOpenMore={() => setDrawerOpen(true)} />
+        <AssistantLauncher />
         <CommandPalette
           open={paletteOpen}
           onOpenChange={setPaletteOpen}

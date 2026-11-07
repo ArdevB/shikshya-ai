@@ -84,14 +84,16 @@ export function NotificationBell() {
           className="relative"
           aria-label={count ? `Notifications, ${count} unread` : 'Notifications'}
         >
-          {/* A new key restarts the animation, so the bell rings once for each arrival. */}
+          {/* A new key restarts an animation: the bell rings for each arrival and the badge pops.
+              Siblings must not share a key, or React leaves the old bell on screen, so these
+              two numbers get different prefixes in case they are ever equal. */}
           <Bell
-            key={received}
+            key={`bell-${received}`}
             className={cn('origin-top [&]:size-5', received > 0 && 'animate-wiggle')}
           />
           {count > 0 && (
             <span
-              key={count}
+              key={`count-${count}`}
               className="absolute right-1 top-1 flex min-w-4 animate-pop items-center justify-center rounded-full bg-accent-strong px-1 text-[10px] font-bold leading-4 text-accent-foreground"
             >
               {count > 9 ? '9+' : count}

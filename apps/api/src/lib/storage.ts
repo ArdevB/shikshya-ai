@@ -2,7 +2,7 @@ import { ALLOWED_UPLOAD_EXTENSIONS, MAX_UPLOAD_BYTES, type StoredFile } from '@s
 import type { Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, extname, join, resolve } from 'node:path';
 import multer from 'multer';
 import { env } from '../config/env.js';
@@ -16,6 +16,8 @@ export interface StorageService {
   /** Sends a stored file as a download. */
   send(file: StoredFile, res: Response): Promise<void>;
   remove(file: StoredFile): Promise<void>;
+  /** The file's bytes, for reading its contents on the server. */
+  read(file: StoredFile): Promise<Buffer>;
 }
 
 class LocalStorage implements StorageService {
@@ -61,6 +63,10 @@ class LocalStorage implements StorageService {
 
   async remove(file: StoredFile) {
     await rm(this.pathFor(file), { force: true });
+  }
+
+  async read(file: StoredFile) {
+    return readFile(this.pathFor(file));
   }
 }
 

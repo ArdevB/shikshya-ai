@@ -9,7 +9,7 @@ The build is split into five phases, specified in [docs/phases](docs/phases). Co
 | 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done   |
 | 2     | Timetable, exams and results, assignments, notices, dashboards                | Done   |
 | 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Done   |
-| 4     | AI assistant, at-risk prediction, quiz and timetable generators               |        |
+| 4     | AI assistant, at-risk prediction, quiz and timetable generators               | Built. See [AI features](#ai-features) |
 | 5     | Testing, security hardening, deployment, documentation                        |        |
 
 ## Project layout
@@ -24,34 +24,41 @@ docs/phases      The specification for each phase
 
 ## Run it locally
 
-You need Node.js 20 or newer and [pnpm](https://pnpm.io/installation). Docker is optional.
+You need Node.js 20 or newer, [pnpm](https://pnpm.io/installation), Python 3.11 for the AI features, and a free [Neon](https://neon.com) database. Docker is optional.
 
 1. Install dependencies:
    ```bash
    pnpm install
    ```
-2. Create the API's settings file. The defaults work as they are for local development:
+2. Create the API's settings file. All the app's settings live here:
    ```bash
    cp apps/api/.env.example apps/api/.env
    ```
-3. Start Postgres, using **one** of these:
-   ```bash
-   pnpm db:up      # with Docker
-   pnpm db:local   # without Docker: leave this running in its own terminal
-   ```
+3. Set up the database. Create a Neon project with Postgres 18 in Singapore, and copy its **direct** connection string, the one with no `-pooler` in the host. Set it as `DATABASE_URL` in `apps/api/.env`, with `&connect_timeout=15&connection_limit=8&pool_timeout=30` on the end.
+
+   To work offline instead, use `pnpm db:up` (Docker, with pgvector) or `pnpm db:local` (no Docker and no pgvector, so college-rules search uses keywords), and keep the default `DATABASE_URL`.
+
 4. Create the tables:
    ```bash
-   pnpm db:migrate
+   pnpm --filter @shikshya/api exec prisma migrate deploy
    ```
 5. Load the demo data. This replaces everything in the database:
    ```bash
    pnpm db:seed
    ```
-6. Start the web app and API:
+6. Set up the AI service, once:
+   ```bash
+   cd apps/ai
+   py -3.11 -m venv .venv        # on macOS/Linux: python3.11 -m venv .venv
+   .venv/Scripts/activate        # on macOS/Linux: source .venv/bin/activate
+   pip install -r requirements.txt -r requirements-dev.txt
+   cd ../..
+   ```
+7. Start the web app, API and AI service together:
    ```bash
    pnpm dev
    ```
-7. Open <http://localhost:5173> and log in with an account below.
+8. Open <http://localhost:5173> and log in with an account below.
 
 ### Demo accounts
 
@@ -75,7 +82,7 @@ Admins can import students from a CSV file under **Students → Import CSV**, wh
 
 | Command             | What it does                                                 |
 | ------------------- | ------------------------------------------------------------ |
-| `pnpm dev`          | Runs the web app (port 5173) and API (port 4000)             |
+| `pnpm dev`          | Runs the web app (5173), API (4000) and AI service (8000)    |
 | `pnpm test`         | Runs all tests. Starts its own throwaway Postgres            |
 | `pnpm lint`         | ESLint and the Prettier check                                |
 | `pnpm format`       | Formats the code with Prettier                               |
@@ -84,17 +91,9 @@ Admins can import students from a CSV file under **Students → Import CSV**, wh
 | `pnpm db:migrate`   | Applies database migrations, creating new ones as needed     |
 | `pnpm db:seed`      | Replaces the database with demo data (refused in production) |
 | `pnpm khalti:check` | Shows what Khalti says to a small test payment               |
+| `pnpm ai:check`     | Tries Gemini and the AI service for real, using a little quota |
 
-The AI service has its own Python 3.11 environment:
-
-```bash
-cd apps/ai
-py -3.11 -m venv .venv        # on macOS/Linux: python3.11 -m venv .venv
-.venv/Scripts/activate        # on macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-pytest
-uvicorn app.main:app --port 8000
-```
+In `apps/ai`, with its `.venv` active: `pytest`, `ruff check .`, and `python -m ml.train` to retrain the at-risk model.
 
 ## Settings
 
@@ -108,6 +107,23 @@ Settings for the API are in `apps/api/.env`, described in [apps/api/.env.example
 - **Keyboard:** the first Tab on any page offers a link that skips to the content. Tabs and attendance choices move with the arrow keys. After a page change, focus moves to the new page and screen readers announce it.
 - **Less motion:** the app follows your device's "reduce motion" setting. Animations stop and nothing else changes.
 - **Charts:** every chart has **View as table** underneath, for exact numbers.
+
+## AI features
+
+Four features, explained for a demo in [docs/ai-demo.md](docs/ai-demo.md):
+
+- **Shikshya Assistant:** answers from live data and the college rules. It fetches everything through the same services and permission checks as the normal API, and no tool takes a student id, so a prompt cannot reach someone else's records.
+- **Students needing attention:** a model flags students who may fail, with reasons a teacher can act on. Students never see a label. It is trained on synthetic data, so read its [model card](apps/ai/ml/model_card.md) before relying on it.
+- **Quiz generator:** drafts questions from a teacher's notes. Nothing reaches students until the teacher has approved every question.
+- **Timetable generator:** a constraint solver proposes a week with no clashes, for an admin to adjust and save. [How it works](docs/algorithms/timetable.md).
+
+### Setting up Gemini
+
+Create a key at [AI Studio](https://aistudio.google.com), put it in `apps/api/.env` as `GEMINI_API_KEY`, restart `pnpm dev`, and run `pnpm ai:check`. The at-risk and timetable features work without it.
+
+**Use the free tier with the fake demo data only.** Google may use free-tier prompts and replies to improve its products, human reviewers may read them, and its [terms](https://aistudio.google.com/docs/terms) forbid sending personal data. Real student data needs billing enabled at least. The same terms bar apps likely to be used by under-18s on any tier, so a school with younger students would need another provider. `apps/api/src/lib/llm.ts` is the only file that would change.
+
+Every AI call is logged in the `AiCallLog` table, with the user, feature, tokens and time taken, but no prompts or replies.
 
 ## Attendance rules
 

@@ -250,6 +250,17 @@
     animation: drawer-out 0.2s ease-in both;
   }
 
+  /* The assistant slides in from the right, and takes the whole screen on a phone. */
+  .assistant-panel {
+    @apply fixed inset-y-0 right-0 z-50 flex w-full flex-col bg-background shadow-lifted sm:w-[26rem];
+  }
+  .assistant-panel[data-state='open'] {
+    animation: panel-in 0.34s var(--ease-spring);
+  }
+  .assistant-panel[data-state='closed'] {
+    animation: panel-out 0.2s ease-in both;
+  }
+
   .menu-content {
     @apply z-50 origin-[--radix-dropdown-menu-content-transform-origin] rounded-xl border bg-card shadow-lifted;
   }
@@ -313,6 +324,16 @@
 @keyframes drawer-out {
   to {
     transform: translateX(-100%);
+  }
+}
+@keyframes panel-in {
+  from {
+    transform: translateX(100%);
+  }
+}
+@keyframes panel-out {
+  to {
+    transform: translateX(100%);
   }
 }
 @keyframes menu-in {

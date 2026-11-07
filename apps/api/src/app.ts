@@ -8,6 +8,13 @@ import { requireAuth } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { academicRoutes } from './routes/academic.routes.js';
 import {
+  assistantRoutes,
+  policyRoutes,
+  quizRoutes,
+  riskRoutes,
+  timetableGeneratorRoutes,
+} from './routes/ai.routes.js';
+import {
   attendanceRoutes,
   offeringAttendanceRoutes,
   studentAttendanceRoutes,
@@ -96,6 +103,11 @@ export function createApp() {
   api.use('/pdf', pdfRoutes());
   api.use('/settings', settingsRoutes());
   api.use('/notifications', notificationRoutes());
+  api.use('/assistant', assistantRoutes());
+  api.use('/policies', policyRoutes());
+  api.use('/risk', riskRoutes());
+  api.use('/quizzes', quizRoutes());
+  api.use('/timetable-generator', timetableGeneratorRoutes());
 
   app.use('/api/v1', api);
   app.use(notFoundHandler);

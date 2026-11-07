@@ -7,6 +7,7 @@ import {
   notifyStudentsAndParents,
 } from '../services/notification.service.js';
 import { reconcilePayments } from '../services/payment.service.js';
+import { computeRiskPredictions } from '../services/risk.service.js';
 
 const TIME_ZONE = 'Asia/Kathmandu';
 
@@ -73,6 +74,9 @@ export function startScheduler() {
     timezone: TIME_ZONE,
   });
   cron.schedule('0 * * * *', run('due reminders', sendDueReminders), { timezone: TIME_ZONE });
+  cron.schedule('30 1 * * *', run('risk predictions', computeRiskPredictions), {
+    timezone: TIME_ZONE,
+  });
   cron.schedule('*/15 * * * *', run('reconcile payments', reconcilePayments), {
     timezone: TIME_ZONE,
   });

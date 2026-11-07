@@ -24,6 +24,10 @@ export default defineConfig({
       UPLOAD_DIR: join(tmpdir(), 'shikshya-test-uploads'),
       KHALTI_SECRET_KEY: 'test-khalti-key',
       SMTP_HOST: '',
+      // Tests replace both AI backends, and must never be able to reach the real ones.
+      GEMINI_API_KEY: '',
+      INTERNAL_KEY: 'test-internal-key',
+      AI_SERVICE_URL: 'http://ai-service.test',
     },
   },
 });

@@ -1,2 +1,18 @@
 fastapi>=0.115,<1
 uvicorn[standard]>=0.32,<1
+pydantic>=2.9,<3
+python-multipart>=0.0.9,<1
+
+# At-risk prediction
+scikit-learn>=1.5,<2
+pandas>=2.2,<3
+numpy>=2,<3
+joblib>=1.4,<2
+
+# Quiz generation: Google Gen AI SDK, and reading the teacher's files
+google-genai>=1.0,<3
+pypdf>=5,<7
+python-docx>=1.1,<2
+
+# Timetable generation
+ortools>=9.11,<10

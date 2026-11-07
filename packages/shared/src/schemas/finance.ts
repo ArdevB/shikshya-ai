@@ -203,6 +203,8 @@ export const NOTIFICATION_TYPES = [
   'INVOICE_ISSUED',
   'INVOICE_OVERDUE',
   'PAYMENT_SUCCESS',
+  'STUDY_SUPPORT',
+  'QUIZ_PUBLISHED',
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
@@ -215,6 +217,8 @@ export const NOTIFICATION_LABELS: Record<NotificationType, string> = {
   INVOICE_ISSUED: 'New invoices',
   INVOICE_OVERDUE: 'Overdue invoices',
   PAYMENT_SUCCESS: 'Successful payments',
+  STUDY_SUPPORT: 'Study support reminders',
+  QUIZ_PUBLISHED: 'New quizzes',
 };
 
 export const NOTIFICATION_CHANNELS = ['EMAIL', 'IN_APP'] as const;

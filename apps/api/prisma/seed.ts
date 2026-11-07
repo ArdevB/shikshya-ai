@@ -5,6 +5,8 @@
  */
 import { AttendanceStatus, PrismaClient, type Role, type Student } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import { retryOnConnectionError } from '../src/lib/prisma.js';
+import { chunkText } from '../src/services/chunking.js';
 import { findClashes } from '../src/services/clashes.js';
 import { recomputeSemesterResults } from '../src/services/grading.js';
 
@@ -12,7 +14,19 @@ if (process.env.NODE_ENV === 'production') {
   throw new Error('The demo seed replaces all data and must not run in production.');
 }
 
-const prisma = new PrismaClient();
+// The seed sends thousands of small writes across the internet, so it retries each of them. It
+// can do what the app cannot: if a retried write did already happen, the seed just fails, and
+// running it again starts cleanly.
+const prisma = new PrismaClient().$extends({
+  name: 'retry-everything',
+  query: {
+    $allModels: {
+      $allOperations({ args, query }) {
+        return retryOnConnectionError(() => query(args), 5, 1000);
+      },
+    },
+  },
+});
 
 const DEMO_PASSWORD = 'Shikshya@123';
 const EMAIL_DOMAIN = 'shikshya.test';
@@ -28,6 +42,36 @@ function createRandom(seed: number) {
   };
 }
 const random = createRandom(20260601);
+
+const COLLEGE_RULES = `Attendance rules
+
+Students must attend at least 75 percent of the classes held in each course to sit the final examination. Late arrival counts as present. An excused absence, approved by the department head with a medical certificate or similar evidence, is left out of the calculation. A student below 75 percent must meet the department head before the examination form can be accepted.
+
+Examination rules
+
+Students must bring their college ID card to every examination, and arrive at least 15 minutes before it starts. Nobody may enter the hall more than 30 minutes after the start. Phones and smart watches must be switched off and left at the front of the hall. Copying, or helping another student to copy, leads to the paper being cancelled.
+
+Internal assessment makes up 40 percent of a theory course, and the final examination 60 percent. A student must pass both separately. Rechecking of a paper may be requested within 15 days of the results being published, for a fee of Rs. 500 per paper.
+
+Grading
+
+Grades follow the Tribhuvan University scale, from A at 4.0 down to F at 0.0. A minimum grade of C is needed to pass a course. The semester GPA is the credit-weighted average of course grade points, and the CGPA is the same across all completed semesters.
+
+Fees
+
+Semester fees are due within 25 days of the invoice date. A fine of Rs. 50 a day applies after a 7 day grace period, up to a maximum of Rs. 2,000. Students with unpaid fees may be stopped from sitting the final examination. Fees can be paid online with eSewa or Khalti, or at the accounts office from 10 am to 3 pm on working days.
+
+Library
+
+The library is open from 7 am to 6 pm, Sunday to Friday. Students may borrow up to 3 books for 14 days. A late return costs Rs. 5 a day per book. A lost book must be replaced, or paid for at its current price.
+
+Conduct
+
+Students must wear their college ID card on campus. Ragging, harassment and discrimination of any kind are not tolerated, and lead to suspension. Complaints may be made in confidence to the student welfare office, which responds within 7 working days.
+
+Leave
+
+Leave of up to 3 days is approved by the class teacher, and longer leave by the department head. Leave must be requested in advance except in an emergency, and it does not reduce the 75 percent attendance requirement unless it is recorded as an excused absence.`;
 
 const FIRST_NAMES = [
   'Aarav',
@@ -776,6 +820,151 @@ async function main() {
       },
     ],
   });
+
+
+  // ---------- Phase 4 ----------
+
+  // College rules, so the assistant has something to quote. They have no embeddings yet, so search
+  // uses keywords until a Gemini key is set and an admin presses "Prepare search".
+  await prisma.policyDocument.create({
+    data: {
+      title: 'College rules and regulations',
+      file: {
+        id: 'demo-college-rules.txt',
+        name: 'college-rules.txt',
+        size: COLLEGE_RULES.length,
+        mimeType: 'text/plain',
+      },
+      uploadedById: adminUser.id,
+      chunks: {
+        create: chunkText(COLLEGE_RULES).map((content, position) => ({ content, position })),
+      },
+    },
+  });
+
+  // Quizzes for teacher 1, written by hand here so they can be shown without a Gemini key.
+  const quizOffering = await prisma.courseOffering.findFirstOrThrow({
+    where: { teacherId: teachers[0]!.id, section: { name: 'A' } },
+    include: { teacher: { select: { userId: true } }, course: { select: { title: true } } },
+  });
+  const notes =
+    'Software engineering applies engineering discipline to building software. The waterfall model runs through its phases in order, while agile methods deliver small working increments and adapt to change. Requirements describe what a system must do. Testing checks that it does so.';
+  const publishedQuiz = await prisma.quiz.create({
+    data: {
+      courseOfferingId: quizOffering.id,
+      title: `${quizOffering.course.title}: first chapters`,
+      status: 'PUBLISHED',
+      sourceText: notes,
+      opensAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
+      closesAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+      publishedAt: new Date(),
+      createdById: quizOffering.teacher.userId,
+      questions: {
+        create: [
+          {
+            position: 0,
+            type: 'MCQ',
+            question: 'Which approach delivers small working increments and adapts to change?',
+            options: ['Waterfall', 'Agile', 'Big bang', 'Code and fix'],
+            correctAnswer: 'Agile',
+            explanation: 'Agile methods deliver in small increments and welcome change.',
+            difficulty: 'EASY',
+            sourceSnippet: 'agile methods deliver small working increments',
+            approved: true,
+          },
+          {
+            position: 1,
+            type: 'TRUE_FALSE',
+            question: 'The waterfall model runs through its phases in order.',
+            options: ['True', 'False'],
+            correctAnswer: 'True',
+            explanation: 'Each waterfall phase finishes before the next begins.',
+            difficulty: 'EASY',
+            sourceSnippet: 'The waterfall model runs through its phases in order',
+            approved: true,
+          },
+          {
+            position: 2,
+            type: 'SHORT_ANSWER',
+            question: 'In one sentence, what is the difference between requirements and testing?',
+            correctAnswer:
+              'Requirements say what a system must do, and testing checks that it does so.',
+            explanation: 'One defines the goal, and the other checks that it was met.',
+            difficulty: 'MEDIUM',
+            sourceSnippet: 'Requirements describe what a system must do. Testing checks',
+            approved: true,
+          },
+        ],
+      },
+    },
+    include: { questions: { orderBy: { position: 'asc' } } },
+  });
+  // One student has already answered, so the marking screen has something to show.
+  await prisma.quizAttempt.create({
+    data: {
+      quizId: publishedQuiz.id,
+      studentId: students[1]!.id,
+      submittedAt: new Date(),
+      answers: {
+        create: [
+          { questionId: publishedQuiz.questions[0]!.id, answer: 'Agile', isCorrect: true },
+          { questionId: publishedQuiz.questions[1]!.id, answer: 'False', isCorrect: false },
+          {
+            questionId: publishedQuiz.questions[2]!.id,
+            answer: 'Requirements are what to build, and testing makes sure it works.',
+            isCorrect: null,
+          },
+        ],
+      },
+    },
+  });
+  await prisma.quiz.create({
+    data: {
+      courseOfferingId: quizOffering.id,
+      title: `${quizOffering.course.title}: draft to review`,
+      sourceText: notes,
+      createdById: quizOffering.teacher.userId,
+      questions: {
+        create: [
+          {
+            position: 0,
+            type: 'MCQ',
+            question: 'What do requirements describe?',
+            options: [
+              'What a system must do',
+              'How fast a disk spins',
+              'The office layout',
+              'The tea break schedule',
+            ],
+            correctAnswer: 'What a system must do',
+            explanation: 'The notes define requirements this way.',
+            difficulty: 'EASY',
+            sourceSnippet: 'Requirements describe what a system must do',
+          },
+          {
+            position: 1,
+            type: 'TRUE_FALSE',
+            question: 'Testing checks that a system does what its requirements say.',
+            options: ['True', 'False'],
+            correctAnswer: 'True',
+            explanation: 'That is the purpose of testing.',
+            difficulty: 'EASY',
+            sourceSnippet: 'Testing checks that it does so',
+          },
+        ],
+      },
+    },
+  });
+
+  // At-risk predictions come from the Python service, so this needs it running. If it is not, an
+  // admin can press "Recalculate now" later, and otherwise the nightly job fills them in.
+  try {
+    const { computeRiskPredictions } = await import('../src/services/risk.service.js');
+    const risk = await computeRiskPredictions();
+    console.log(`\nAt-risk predictions: ${risk.computed} worked out, ${risk.flagged} flagged.`);
+  } catch {
+    console.log('\nSkipped at-risk predictions: the AI service is not running.');
+  }
 
   console.log('\nSeed complete.');
   console.log(
