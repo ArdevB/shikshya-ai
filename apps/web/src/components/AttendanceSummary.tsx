@@ -35,7 +35,7 @@ function CourseCard({ course }: { course: StudentCourseAttendance }) {
 
         <div className="min-w-0 flex-1 space-y-1">
           <p className="text-xs font-semibold text-muted-foreground">{course.courseCode}</p>
-          <h3 className="font-semibold leading-snug">{course.courseTitle}</h3>
+          <h2 className="font-semibold leading-snug">{course.courseTitle}</h2>
           <p className="text-sm text-muted-foreground">{course.teacherName}</p>
           <p className="text-sm text-muted-foreground">
             {percentage === null

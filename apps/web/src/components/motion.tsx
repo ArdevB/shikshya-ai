@@ -30,9 +30,11 @@ export function AnimatedNumber({
     const controls = animate(previous.current, value, {
       duration: 0.9,
       ease: EASE_SPRING,
-      onUpdate: setShown,
+      onUpdate: (latest) => {
+        previous.current = latest;
+        setShown(latest);
+      },
     });
-    previous.current = value;
     return () => controls.stop();
   }, [value, reduceMotion]);
 
@@ -120,11 +122,12 @@ export function ProgressRing({
           transition={{ duration: 1, ease: EASE_SPRING, delay: 0.1 }}
         />
         {markAt !== undefined && (
+          // Starts from 3 o'clock, like the ring's own stroke, so both turn from the same place.
           <line
-            x1="32"
-            y1={32 - radius - stroke / 2 - 1}
-            x2="32"
-            y2={32 - radius + stroke / 2 + 1}
+            x1={32 + radius - stroke / 2 - 1}
+            y1="32"
+            x2={32 + radius + stroke / 2 + 1}
+            y2="32"
             strokeWidth={2}
             className="stroke-foreground/60"
             transform={`rotate(${(markAt / 100) * 360} 32 32)`}
@@ -141,10 +144,10 @@ export function ProgressRing({
  * before appearing, so quick requests do not make it flicker. Background refreshes of data
  * already on screen do not count.
  */
-export function TopProgressBar() {
+export function TopProgressBar({ navigating = false }: { navigating?: boolean }) {
   const fetching = useIsFetching({ predicate: (query) => query.state.data === undefined });
   const saving = useIsMutating();
-  const busy = fetching + saving > 0;
+  const busy = navigating || fetching + saving > 0;
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {

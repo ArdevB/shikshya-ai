@@ -38,6 +38,18 @@ describe('ProgressRing', () => {
     expect(ring).toHaveAttribute('aria-valuenow', '68');
   });
 
+  it('puts the required mark where the ring reaches that level', () => {
+    const { container } = render(<ProgressRing percent={89} label="DBMS" markAt={75} />);
+    const ring = container.querySelector('circle:last-of-type');
+    const mark = container.querySelector('line');
+    // An SVG circle's stroke starts at 3 o'clock and runs clockwise. The mark must start there too.
+    expect(ring).toHaveAttribute('cx', '32');
+    expect(mark).toHaveAttribute('y1', '32');
+    expect(mark).toHaveAttribute('y2', '32');
+    expect(Number(mark?.getAttribute('x1'))).toBeGreaterThan(32);
+    expect(mark).toHaveAttribute('transform', 'rotate(270 32 32)');
+  });
+
   it('has no value yet when there are no classes', () => {
     render(<ProgressRing percent={null} label="DBMS attendance" />);
     expect(screen.getByRole('progressbar')).not.toHaveAttribute('aria-valuenow');

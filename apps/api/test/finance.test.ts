@@ -1,6 +1,7 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closePdfBrowser } from '../src/pdf/render.js';
 import { esewaSignature, signedMessage } from '../src/services/gateways/esewa.js';
+import { addDays, todayInNepal } from '../src/lib/time.js';
 import { applyOverdueAndFines } from '../src/services/finance.service.js';
 import { reconcilePayments } from '../src/services/payment.service.js';
 import {
@@ -745,7 +746,7 @@ describe('paying with Khalti', () => {
     expect(response.body.error.message).toContain('did not accept the merchant key');
   });
 
-  it('leaves out customer details unless they are complete', async () => {
+  it('always names the customer, and only sends a phone that looks valid', async () => {
     const started = async () => {
       const invoice = await freshInvoice();
       fetchMock.mockResolvedValueOnce(
@@ -755,13 +756,20 @@ describe('paying with Khalti', () => {
       return JSON.parse(String(fetchMock.mock.lastCall![1]!.body)) as Record<string, unknown>;
     };
 
-    expect((await started()).customer_info).toBeUndefined();
+    const nameAndEmailOnly = { name: expect.any(String), email: expect.any(String) };
+    expect((await started()).customer_info).toEqual(nameAndEmailOnly);
+
+    await prisma.user.update({
+      where: { id: fx.studentA.userId },
+      data: { phone: '+977 1 4000000' },
+    });
+    expect((await started()).customer_info).toEqual(nameAndEmailOnly);
 
     await prisma.user.update({
       where: { id: fx.studentA.userId },
       data: { phone: '980-000 0000' },
     });
-    expect((await started()).customer_info).toMatchObject({ phone: '9800000000' });
+    expect((await started()).customer_info).toEqual({ ...nameAndEmailOnly, phone: '9800000000' });
     await prisma.user.update({ where: { id: fx.studentA.userId }, data: { phone: null } });
   });
 
@@ -883,8 +891,50 @@ describe('reports', () => {
       .get(`${V1}/finance/outstanding-by-program`)
       .set(bearer(accountant));
     expect(byProgram.body[0].code).toBe('CSIT');
+  });
+
+  it('charts every one of the last 30 days, including days with nothing collected', async () => {
+    const today = todayInNepal();
     const trend = await api().get(`${V1}/finance/collections-trend`).set(bearer(admin));
-    expect(trend.body.length).toBeGreaterThan(0);
+    expect(trend.status).toBe(200);
+    expect(trend.body).toHaveLength(30);
+    expect(trend.body[0].date).toBe(addDays(today, -29));
+    expect(trend.body[29].date).toBe(today);
+    expect(trend.body.some((day: { totalPaisa: number }) => day.totalPaisa === 0)).toBe(true);
+    expect(trend.body.some((day: { totalPaisa: number }) => day.totalPaisa > 0)).toBe(true);
+  });
+
+  it('counts a payment on the day it was made in Nepal, not the day in UTC', async () => {
+    const today = todayInNepal();
+    const totals = async () => {
+      const summary = await api().get(`${V1}/finance/collections-summary`).set(bearer(admin));
+      const trend = await api().get(`${V1}/finance/collections-trend`).set(bearer(admin));
+      const onDay = (date: string) =>
+        trend.body.find((day: { date: string }) => day.date === date).totalPaisa as number;
+      return {
+        today: summary.body.todayPaisa as number,
+        chartToday: onDay(today),
+        chartYesterday: onDay(addDays(today, -1)),
+      };
+    };
+    const before = await totals();
+
+    // 18:30 UTC is 00:15 the next morning in Nepal.
+    const invoice = await freshInvoice();
+    await prisma.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amountPaisa: 12345,
+        method: 'CASH',
+        status: 'SUCCESS',
+        paidAt: new Date(`${addDays(today, -1)}T18:30:00.000Z`),
+      },
+    });
+
+    const after = await totals();
+    expect(after.today - before.today).toBe(12345);
+    expect(after.chartToday - before.chartToday).toBe(12345);
+    expect(after.chartYesterday).toBe(before.chartYesterday);
   });
 });
 

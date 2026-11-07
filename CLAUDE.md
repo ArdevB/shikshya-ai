@@ -69,6 +69,7 @@ pnpm lint             # eslint + prettier check
 pnpm format           # prettier --write
 pnpm typecheck        # tsc across workspaces
 pnpm build            # production builds
+pnpm khalti:check     # shows what Khalti says to a small test payment
 # AI service, from apps/ai with its .venv active: pytest, ruff check .
 ```
 

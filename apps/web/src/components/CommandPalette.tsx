@@ -1,6 +1,6 @@
 import { Command } from 'cmdk';
 import { KeyRound, LogOut, Search } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useCurrentUser } from '@/auth/AuthContext';
 import { navGroups } from '@/components/navigation';
@@ -28,13 +28,21 @@ export function useCommandPaletteShortcut(setOpen: (update: (open: boolean) => b
 export function CommandPalette({
   open,
   onOpenChange,
+  onCloseAutoFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCloseAutoFocus?: (event: Event) => void;
 }) {
   const user = useCurrentUser();
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const [search, setSearch] = useState('');
+
+  // Reopening during the closing animation would otherwise keep the last search.
+  useEffect(() => {
+    if (open) setSearch('');
+  }, [open]);
 
   const go = (path: string) => {
     onOpenChange(false);
@@ -43,7 +51,11 @@ export function CommandPalette({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent hideClose className="gap-0 overflow-hidden p-0 sm:top-[18%] sm:max-w-xl">
+      <DialogContent
+        hideClose
+        onCloseAutoFocus={onCloseAutoFocus}
+        className="dialog-palette gap-0 overflow-hidden p-0 sm:max-w-xl"
+      >
         <DialogTitle className="sr-only">Go to a page</DialogTitle>
         <DialogDescription className="sr-only">
           Type to search the pages you have access to, then press Enter.
@@ -53,6 +65,8 @@ export function CommandPalette({
             <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden />
             <Command.Input
               autoFocus
+              value={search}
+              onValueChange={setSearch}
               placeholder="Where do you want to go?"
               className="h-14 w-full bg-transparent text-base outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
             />

@@ -37,6 +37,8 @@ export interface NavItem {
   icon: LucideIcon;
   end?: boolean;
   badge?: 'notices';
+  /** For the phone's bottom bar, where space is tight. */
+  short?: string;
   /** Other words people might search for this by. */
   keywords?: string[];
 }
@@ -47,7 +49,14 @@ export interface NavGroup {
 }
 
 const FINANCE_ITEMS: NavItem[] = [
-  { to: '/finance', label: 'Fees dashboard', icon: Wallet, end: true, keywords: ['collections'] },
+  {
+    to: '/finance',
+    label: 'Fees dashboard',
+    short: 'Dashboard',
+    icon: Wallet,
+    end: true,
+    keywords: ['collections'],
+  },
   { to: '/finance/invoices', label: 'Invoices', icon: Files, keywords: ['bill', 'dues', 'fine'] },
   { to: '/finance/payments', label: 'Payments', icon: Receipt, keywords: ['receipt', 'esewa'] },
   { to: '/finance/setup', label: 'Fee setup', icon: Coins, keywords: ['structure', 'fine rule'] },
@@ -161,14 +170,25 @@ const GROUPS_BY_ROLE: Partial<Record<Role, NavGroup[]>> = {
     {
       label: 'Attendance',
       items: [
-        { to: '/teacher/attendance', label: 'Take attendance', icon: ClipboardCheck },
+        {
+          to: '/teacher/attendance',
+          label: 'Take attendance',
+          short: 'Attendance',
+          icon: ClipboardCheck,
+        },
         { to: '/teacher/reports', label: 'Attendance reports', icon: ChartColumn },
       ],
     },
     {
       label: 'Teaching',
       items: [
-        { to: '/teacher/marks', label: 'Enter marks', icon: FileCheck2, keywords: ['exam'] },
+        {
+          to: '/teacher/marks',
+          label: 'Enter marks',
+          short: 'Marks',
+          icon: FileCheck2,
+          keywords: ['exam'],
+        },
         { to: '/teacher/results', label: 'Class results', icon: Award, keywords: ['gpa'] },
         { to: '/teacher/assignments', label: 'Assignments', icon: ClipboardList },
         { to: '/teacher/materials', label: 'Materials', icon: BookOpenText, keywords: ['notes'] },
@@ -199,11 +219,13 @@ const familyGroups = (base: string, own: boolean): NavGroup[] => [
       {
         to: `${base}/attendance`,
         label: own ? 'My attendance' : 'Attendance',
+        short: 'Attendance',
         icon: CalendarCheck,
       },
       {
         to: `${base}/results`,
         label: own ? 'My results' : 'Results',
+        short: 'Results',
         icon: Award,
         keywords: ['gpa'],
       },

@@ -192,7 +192,6 @@ export function EventsPage() {
                   <button
                     key={day}
                     type="button"
-                    aria-label={`${day}, ${dayEvents.length} events`}
                     aria-pressed={selectedDay === day}
                     onClick={() => setSelectedDay(day)}
                     className={cn(
@@ -208,6 +207,10 @@ export function EventsPage() {
                       )}
                     >
                       {Number(day.slice(8))}
+                    </span>
+                    <span className="sr-only">
+                      {MONTH_FORMAT.format(new Date(`${day}T00:00:00Z`))},{' '}
+                      {dayEvents.length === 1 ? '1 event' : `${dayEvents.length} events`}
                     </span>
                     <span className="hidden space-y-0.5 md:block">
                       {dayEvents.slice(0, 2).map((event) => (

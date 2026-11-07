@@ -144,7 +144,17 @@ export function TrendLineChart({
               strokeWidth={2}
               fill={`url(#${fillId})`}
               connectNulls
-              dot={data.length <= 12 ? { r: 4, fill: SKY, strokeWidth: 0 } : false}
+              dot={
+                data.length <= 12
+                  ? { r: data.length === 1 ? 6 : 4, fill: SKY, fillOpacity: 1, strokeWidth: 0 }
+                  : false
+              }
+              // One point has no line to follow, so it says its value.
+              label={
+                data.length === 1
+                  ? { position: 'right', offset: 12, formatter: format, fontSize: 13, fill: INK }
+                  : undefined
+              }
               activeDot={{ r: 5, stroke: 'rgb(var(--background))', strokeWidth: 2 }}
               isAnimationActive={!reduceMotion}
               animationDuration={1000}
@@ -192,7 +202,13 @@ export function CountBarChart({
             margin={{ top: 12, right: 8, bottom: 0, left: formatTick ? -8 : -24 }}
           >
             <CartesianGrid stroke={GRID} vertical={false} />
-            <XAxis dataKey="name" tick={axisTick} tickLine={false} axisLine={{ stroke: GRID }} />
+            <XAxis
+              dataKey="name"
+              tick={axisTick}
+              tickLine={false}
+              axisLine={{ stroke: GRID }}
+              minTickGap={20}
+            />
             <YAxis
               allowDecimals={false}
               tick={axisTick}

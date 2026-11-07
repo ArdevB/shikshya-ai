@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { api } from '@/lib/api';
-import { formatDate, formatDateTime } from '@/lib/utils';
+import { formatDate, formatDateTime, formatDayMonth } from '@/lib/utils';
 import { downloadOrToast } from './InvoicesPage';
 import { useState } from 'react';
 import { AnimatedNumber } from '@/components/motion';
@@ -90,7 +90,9 @@ export function FinanceDashboardPage() {
           <CardContent>
             {trend.isPending ? (
               <LoadingRows rows={3} />
-            ) : trend.data?.length ? (
+            ) : trend.isError ? (
+              <ErrorState error={trend.error} onRetry={() => void trend.refetch()} />
+            ) : trend.data.some((d) => d.totalPaisa > 0) ? (
               <CountBarChart
                 ariaLabel="Money collected per day over the last 30 days"
                 xHeader="Date"
@@ -105,7 +107,7 @@ export function FinanceDashboardPage() {
                       : String(rupees)
                 }
                 data={trend.data.map((d) => ({
-                  name: d.date.slice(5),
+                  name: formatDayMonth(d.date),
                   value: d.totalPaisa / 100,
                 }))}
               />

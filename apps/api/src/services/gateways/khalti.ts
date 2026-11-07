@@ -39,13 +39,17 @@ export function describeKhaltiError(status: number, body: Record<string, unknown
 }
 
 /**
- * customer_info is optional, and Khalti validates what is in it. Many students have no phone
- * on record, so it is only sent when complete, rather than risk a refused payment over it.
+ * Without customer_info, Khalti's page shows the merchant's own name under "Billed To". Khalti
+ * checks any phone it is sent, and many students have none on record, so the phone only goes when
+ * it looks like a Nepali mobile number.
  */
 function customerInfo(customer: InitiateInput['customer']) {
   const phone = customer.phone?.replace(/[\s-]/g, '');
-  if (!phone || !/^9[78]\d{8}$/.test(phone)) return undefined;
-  return { name: customer.name, email: customer.email, phone };
+  return {
+    name: customer.name,
+    email: customer.email,
+    ...(phone && /^9[78]\d{8}$/.test(phone) ? { phone } : {}),
+  };
 }
 
 export class KhaltiGateway implements PaymentGateway {

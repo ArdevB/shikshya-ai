@@ -221,6 +221,23 @@
     }
   }
 
+  .dialog-palette::before {
+    display: none;
+  }
+  @media (min-width: 640px) {
+    .dialog-palette {
+      top: 12dvh;
+      max-height: 76dvh;
+      transform: translate(-50%, 0);
+    }
+    .dialog-palette[data-state='open'] {
+      animation: palette-in 0.24s var(--ease-spring);
+    }
+    .dialog-palette[data-state='closed'] {
+      animation: palette-out 0.12s ease-in both;
+    }
+  }
+
   /* The phone menu slides in from the side. */
   .drawer-content {
     @apply fixed inset-y-0 left-0 z-50 flex w-80 max-w-[86%] flex-col overflow-y-auto bg-background shadow-lifted;
@@ -264,6 +281,18 @@
   to {
     opacity: 0;
     transform: translate(-50%, -48%) scale(0.98);
+  }
+}
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.98);
+  }
+}
+@keyframes palette-out {
+  to {
+    opacity: 0;
+    transform: translate(-50%, -4px) scale(0.99);
   }
 }
 @keyframes sheet-in {

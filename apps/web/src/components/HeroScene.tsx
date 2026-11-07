@@ -81,16 +81,16 @@ const BARS = [38, 62, 48, 78, 92];
 export function HeroScene() {
   return (
     <div aria-hidden className="relative mx-auto h-72 w-full max-w-lg select-none xl:h-80">
-      <div className="absolute inset-0 m-auto size-64 xl:size-72">
+      <div className="absolute inset-0 m-auto size-[17rem]">
         {/* The two orbits turn in opposite directions. */}
         <div className="absolute inset-0 animate-spin-slow rounded-full border-2 border-dashed border-white/30">
-          <Orbiter icon={GraduationCap} angle={20} radius="min(8rem, 50%)" />
-          <Orbiter icon={Wallet} angle={150} radius="min(8rem, 50%)" />
-          <Orbiter icon={BellRing} angle={265} radius="min(8rem, 50%)" />
+          <Orbiter icon={GraduationCap} angle={20} radius="8.5rem" />
+          <Orbiter icon={Wallet} angle={150} radius="8.5rem" />
+          <Orbiter icon={BellRing} angle={265} radius="8.5rem" />
         </div>
         <div className="absolute inset-10 animate-spin-reverse rounded-full border-2 border-white/20">
-          <Orbiter icon={CalendarCheck} angle={70} radius="5.5rem" reverse />
-          <Orbiter icon={ClipboardCheck} angle={230} radius="5.5rem" reverse />
+          <Orbiter icon={CalendarCheck} angle={70} radius="6rem" reverse />
+          <Orbiter icon={ClipboardCheck} angle={230} radius="6rem" reverse />
         </div>
 
         <motion.div

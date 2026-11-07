@@ -15,7 +15,16 @@ import {
   X,
 } from 'lucide-react';
 import { LayoutGroup, motion } from 'motion/react';
-import { Suspense, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  Suspense,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth, useCurrentUser } from '@/auth/AuthContext';
 import { roleLabel } from '@/auth/roles';
@@ -31,6 +40,15 @@ import { PAGE_ENTER, SLIDE } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
 const COLLAPSED_KEY = 'shikshya.sidebar-collapsed';
+
+/**
+ * The old page stays up while the next page's code loads, so there is no flash of a loading
+ * state. This gives a click its answer straight away: the highlight moves and the top bar runs.
+ */
+const PendingNavigation = createContext<{
+  pending: string | null;
+  begin: (to: string) => void;
+}>({ pending: null, begin: () => undefined });
 
 function useUnreadNotices() {
   const { data } = useQuery({
@@ -53,17 +71,21 @@ function NavRow({
   onNavigate?: () => void;
 }) {
   const showBadge = item.badge === 'notices' && unread > 0;
+  const { pending, begin } = useContext(PendingNavigation);
   return (
     <NavLink
       to={item.to}
       end={item.end}
-      onClick={onNavigate}
+      onClick={() => {
+        begin(item.to);
+        onNavigate?.();
+      }}
       title={collapsed ? item.label : undefined}
       aria-label={collapsed ? item.label : undefined}
       className={({ isActive }) =>
         cn(
           'group relative flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-200',
-          isActive
+          (pending ? pending === item.to : isActive)
             ? 'text-primary-dark'
             : 'text-foreground/80 hover:bg-primary-soft/60 hover:text-foreground',
           collapsed && 'justify-center px-0',
@@ -72,7 +94,7 @@ function NavRow({
     >
       {({ isActive }) => (
         <>
-          {isActive && (
+          {(pending ? pending === item.to : isActive) && (
             <motion.span
               layoutId="nav-active"
               transition={SLIDE}
@@ -147,6 +169,7 @@ function SidebarNav({
 function BottomBar({ onOpenMore }: { onOpenMore: () => void }) {
   const user = useCurrentUser();
   const unread = useUnreadNotices();
+  const { pending, begin } = useContext(PendingNavigation);
   const itemClass = (active: boolean) =>
     cn(
       'relative flex h-16 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors duration-200',
@@ -164,12 +187,13 @@ function BottomBar({ onOpenMore }: { onOpenMore: () => void }) {
               <NavLink
                 to={item.to}
                 end={item.end}
-                className={({ isActive }) => itemClass(isActive)}
+                onClick={() => begin(item.to)}
+                className={({ isActive }) => itemClass(pending ? pending === item.to : isActive)}
               >
                 {({ isActive }) => (
                   <>
                     <span className="relative flex h-8 w-14 items-center justify-center">
-                      {isActive && (
+                      {(pending ? pending === item.to : isActive) && (
                         <motion.span
                           layoutId="bottom-active"
                           transition={SLIDE}
@@ -184,9 +208,7 @@ function BottomBar({ onOpenMore }: { onOpenMore: () => void }) {
                         />
                       )}
                     </span>
-                    <span className="max-w-full truncate px-1">
-                      {item.label.replace('My ', '').replace('Take ', '')}
-                    </span>
+                    <span className="max-w-full truncate px-1">{item.short ?? item.label}</span>
                   </>
                 )}
               </NavLink>
@@ -239,11 +261,14 @@ function UserMenu() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger asChild>
-        <Button variant="ghost" className="gap-2 px-1.5 sm:px-2" aria-label="Account menu">
-          <span className="flex size-9 items-center justify-center rounded-full bg-gradient-brand text-xs font-bold text-primary-foreground shadow-sm">
+        <Button variant="ghost" className="gap-2 px-1.5 sm:px-2">
+          <span
+            aria-hidden
+            className="flex size-9 items-center justify-center rounded-full bg-gradient-brand text-xs font-bold text-primary-foreground shadow-sm"
+          >
             {initials}
           </span>
-          <span className="hidden text-left lg:block">
+          <span className="sr-only text-left lg:not-sr-only">
             <span className="block text-sm leading-tight">
               {user.firstName} {user.lastName}
             </span>
@@ -251,6 +276,7 @@ function UserMenu() {
               {roleLabel(user.role)}
             </span>
           </span>
+          <span className="sr-only">Account menu</span>
           <ChevronDown className="hidden text-muted-foreground sm:block" />
         </Button>
       </DropdownMenu.Trigger>
@@ -295,9 +321,27 @@ export function AppLayout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   const main = useRef<HTMLElement>(null);
   const firstRender = useRef(true);
+  const focusAfterDialog = useRef(false);
   const [announcement, setAnnouncement] = useState('');
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const beginNavigation = useCallback(
+    (to: string) => setPendingPath(to === window.location.pathname ? null : to),
+    [],
+  );
+  const navigationState = useMemo(
+    () => ({ pending: pendingPath, begin: beginNavigation }),
+    [pendingPath, beginNavigation],
+  );
 
   useCommandPaletteShortcut(setPaletteOpen);
+
+  /** A dialog normally returns focus to what opened it, unless the page changed meanwhile. */
+  const onDialogCloseFocus = useCallback((event: Event) => {
+    if (!focusAfterDialog.current) return;
+    focusAfterDialog.current = false;
+    event.preventDefault();
+    main.current?.focus({ preventScroll: true });
+  }, []);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, collapsed ? '1' : '0');
@@ -308,114 +352,129 @@ export function AppLayout() {
   // screen reader users where they are. A click on a link would otherwise leave them nowhere.
   useEffect(() => {
     setDrawerOpen(false);
+    setPendingPath(null);
     if (firstRender.current) {
       firstRender.current = false;
       return;
     }
     window.scrollTo({ top: 0, behavior: 'instant' });
-    main.current?.focus({ preventScroll: true });
+    // A dialog still on screen keeps focus. It moves here once that closes: see below.
+    if (document.querySelector('[role="dialog"]')) focusAfterDialog.current = true;
+    else main.current?.focus({ preventScroll: true });
     setAnnouncement(findNavTrail(user.role, pathname)?.item.label ?? '');
   }, [pathname, user.role]);
 
   return (
-    <div className="min-h-dvh">
-      <a
-        href="#main"
-        className="fixed left-3 top-3 z-[70] -translate-y-20 rounded-xl bg-primary-strong px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lifted transition-transform focus:translate-y-0"
-      >
-        Skip to content
-      </a>
-      <TopProgressBar />
-      <div aria-live="polite" className="sr-only">
-        {announcement}
-      </div>
-
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar-width)] flex-col border-r bg-card/70 backdrop-blur-xl transition-[width] duration-300 ease-spring md:flex">
-        <div
-          className={cn(
-            'flex h-16 shrink-0 items-center border-b px-5',
-            collapsed && 'justify-center px-0',
-          )}
+    <PendingNavigation.Provider value={navigationState}>
+      <div className="min-h-dvh">
+        <a
+          href="#main"
+          className="fixed left-3 top-3 z-[70] -translate-y-20 rounded-xl bg-primary-strong px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-lifted transition-transform focus:translate-y-0"
         >
-          {collapsed ? <LogoMark /> : <Logo />}
+          Skip to content
+        </a>
+        <TopProgressBar navigating={pendingPath !== null} />
+        <div aria-live="polite" className="sr-only">
+          {announcement}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-          <SidebarNav collapsed={collapsed} />
-        </div>
-        <div className="shrink-0 border-t p-3">
-          <Button
-            variant="ghost"
-            className={cn('w-full justify-start gap-3 font-medium', collapsed && 'justify-center')}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-expanded={!collapsed}
-            onClick={() => setCollapsed((value) => !value)}
+
+        <aside className="fixed inset-y-0 left-0 z-40 hidden w-[var(--sidebar-width)] flex-col border-r bg-card/70 backdrop-blur-xl transition-[width] duration-300 ease-spring md:flex">
+          <div
+            className={cn(
+              'flex h-16 shrink-0 items-center border-b px-5',
+              collapsed && 'justify-center px-0',
+            )}
           >
-            {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
-            {!collapsed && 'Collapse'}
-          </Button>
-        </div>
-      </aside>
-
-      <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
-        <DialogPrimitive.Portal>
-          <DialogPrimitive.Overlay className="dialog-overlay" />
-          <DialogPrimitive.Content className="drawer-content" aria-describedby={undefined}>
-            <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
-            <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-4 backdrop-blur-xl">
-              <Logo />
-              <DialogPrimitive.Close asChild>
-                <Button variant="ghost" size="icon" aria-label="Close menu">
-                  <X />
-                </Button>
-              </DialogPrimitive.Close>
-            </div>
-            <SidebarNav onNavigate={() => setDrawerOpen(false)} />
-          </DialogPrimitive.Content>
-        </DialogPrimitive.Portal>
-      </DialogPrimitive.Root>
-
-      <div className="flex min-h-dvh min-w-0 flex-col transition-[padding] duration-300 ease-spring md:pl-[var(--sidebar-width)]">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl md:px-8">
-          <div className="md:hidden">
-            <LogoMark />
+            {collapsed ? <LogoMark /> : <Logo />}
           </div>
-          <Breadcrumb />
-          <div className="flex-1" />
-          <button
-            type="button"
-            onClick={() => setPaletteOpen(true)}
-            aria-label="Search pages"
-            aria-keyshortcuts="Control+K Meta+K"
-            className="flex size-10 items-center justify-center gap-2 rounded-xl text-sm text-muted-foreground transition-colors hover:bg-primary-soft hover:text-foreground lg:h-10 lg:w-56 lg:justify-start lg:border lg:bg-card lg:px-3 lg:shadow-sm"
+          <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+            <SidebarNav collapsed={collapsed} />
+          </div>
+          <div className="shrink-0 border-t p-3">
+            <Button
+              variant="ghost"
+              className={cn(
+                'w-full justify-start gap-3 font-medium',
+                collapsed && 'justify-center',
+              )}
+              aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!collapsed}
+              onClick={() => setCollapsed((value) => !value)}
+            >
+              {collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}
+              {!collapsed && 'Collapse'}
+            </Button>
+          </div>
+        </aside>
+
+        <DialogPrimitive.Root open={drawerOpen} onOpenChange={setDrawerOpen}>
+          <DialogPrimitive.Portal>
+            <DialogPrimitive.Overlay className="dialog-overlay" />
+            <DialogPrimitive.Content
+              className="drawer-content"
+              aria-describedby={undefined}
+              onCloseAutoFocus={onDialogCloseFocus}
+            >
+              <DialogPrimitive.Title className="sr-only">Menu</DialogPrimitive.Title>
+              <div className="sticky top-0 z-10 flex h-16 shrink-0 items-center justify-between border-b bg-background/90 px-4 backdrop-blur-xl">
+                <Logo />
+                <DialogPrimitive.Close asChild>
+                  <Button variant="ghost" size="icon" aria-label="Close menu">
+                    <X />
+                  </Button>
+                </DialogPrimitive.Close>
+              </div>
+              <SidebarNav onNavigate={() => setDrawerOpen(false)} />
+            </DialogPrimitive.Content>
+          </DialogPrimitive.Portal>
+        </DialogPrimitive.Root>
+
+        <div className="flex min-h-dvh min-w-0 flex-col transition-[padding] duration-300 ease-spring md:pl-[var(--sidebar-width)]">
+          <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b border-border/70 bg-background/75 px-4 backdrop-blur-xl md:px-8">
+            <div className="md:hidden">
+              <LogoMark />
+            </div>
+            <Breadcrumb />
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-keyshortcuts="Control+K Meta+K"
+              className="flex size-10 items-center justify-center gap-2 rounded-xl text-sm text-muted-foreground transition-colors hover:bg-primary-soft hover:text-foreground lg:h-10 lg:w-56 lg:justify-start lg:border lg:bg-card lg:px-3 lg:shadow-sm"
+            >
+              <Search className="size-[18px] shrink-0" aria-hidden />
+              <span className="sr-only flex-1 text-left lg:not-sr-only">Search…</span>
+              <kbd className="hidden rounded-md border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium lg:block">
+                Ctrl K
+              </kbd>
+            </button>
+            <NotificationBell />
+            <UserMenu />
+          </header>
+
+          <main
+            ref={main}
+            id="main"
+            tabIndex={-1}
+            className="flex-1 p-4 pb-24 focus-visible:ring-0 focus-visible:ring-offset-0 md:p-8"
           >
-            <Search className="size-[18px] shrink-0" aria-hidden />
-            <span className="hidden flex-1 text-left lg:block">Search…</span>
-            <kbd className="hidden rounded-md border bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium lg:block">
-              Ctrl K
-            </kbd>
-          </button>
-          <NotificationBell />
-          <UserMenu />
-        </header>
-
-        <main
-          ref={main}
-          id="main"
-          tabIndex={-1}
-          className="flex-1 p-4 pb-24 focus-visible:ring-0 focus-visible:ring-offset-0 md:p-8"
-        >
-          {/* The boundary sits outside the keyed page, so moving between pages keeps the old one
+            {/* The boundary sits outside the keyed page, so moving between pages keeps the old one
               on screen until the new one is ready, rather than flashing a loading state. */}
-          <Suspense fallback={<PageSkeleton />}>
-            <motion.div key={pathname} {...PAGE_ENTER} className="mx-auto max-w-6xl">
-              <Outlet />
-            </motion.div>
-          </Suspense>
-        </main>
-      </div>
+            <Suspense fallback={<PageSkeleton />}>
+              <motion.div key={pathname} {...PAGE_ENTER} className="mx-auto max-w-6xl">
+                <Outlet />
+              </motion.div>
+            </Suspense>
+          </main>
+        </div>
 
-      <BottomBar onOpenMore={() => setDrawerOpen(true)} />
-      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-    </div>
+        <BottomBar onOpenMore={() => setDrawerOpen(true)} />
+        <CommandPalette
+          open={paletteOpen}
+          onOpenChange={setPaletteOpen}
+          onCloseAutoFocus={onDialogCloseFocus}
+        />
+      </div>
+    </PendingNavigation.Provider>
   );
 }

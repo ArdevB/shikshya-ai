@@ -39,6 +39,15 @@ export function toDateTimeInput(value: string | null | undefined) {
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
+/** A short calendar date for chart axes, like "17 Oct". */
+export function formatDayMonth(value: string) {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(value));
+}
+
 /** Calendar dates are stored as UTC midnight, so they are shown in UTC to keep the same day. */
 export function formatDate(value: string) {
   return new Intl.DateTimeFormat('en-GB', {

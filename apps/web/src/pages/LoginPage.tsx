@@ -73,13 +73,13 @@ export function LoginPage() {
         </div>
 
         <div className="relative max-w-lg space-y-5">
-          <motion.h2
-            aria-label={HEADLINE}
-            className="text-3xl font-bold leading-tight xl:text-4xl"
+          <motion.p
+            className="font-heading text-3xl font-bold leading-tight tracking-tight xl:text-4xl"
             variants={staggerParent(0.05, 0.2)}
             initial="hidden"
             animate="show"
           >
+            <span className="sr-only">{HEADLINE}</span>
             {HEADLINE.split(' ').map((word, index) => (
               <motion.span
                 key={`${word}-${index}`}
@@ -90,7 +90,7 @@ export function LoginPage() {
                 {word}
               </motion.span>
             ))}
-          </motion.h2>
+          </motion.p>
           <motion.ul
             className="space-y-2.5"
             variants={staggerParent(0.1, 0.7)}

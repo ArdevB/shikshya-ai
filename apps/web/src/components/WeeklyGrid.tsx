@@ -162,10 +162,8 @@ export function EntryChip({
   return (
     <div className="rounded-lg border-l-4 border-primary bg-primary-soft px-2 py-1.5 text-xs leading-snug transition-shadow duration-200 hover:shadow-soft">
       <p className="font-semibold">{entry.courseCode}</p>
-      <p className="truncate text-muted-foreground" title={entry.courseTitle}>
-        {entry.courseTitle}
-      </p>
-      <p className="truncate text-muted-foreground">
+      <p className="text-muted-foreground">{entry.courseTitle}</p>
+      <p className="text-muted-foreground">
         {entry.roomName}
         {(show === 'section' || show === 'both') && `, Sec ${entry.sectionName}`}
         {(show === 'teacher' || show === 'both') && `, ${entry.teacherName}`}

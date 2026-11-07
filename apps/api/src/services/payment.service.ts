@@ -17,7 +17,7 @@ import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { nextNumber } from '../lib/numbering.js';
 import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
-import { todayInNepal } from '../lib/time.js';
+import { addDays, todayInNepal } from '../lib/time.js';
 import type { CurrentUser } from '../middleware/auth.js';
 import { gatewayFor, isGatewayName } from './gateways/index.js';
 import type { VerifyResult } from './gateways/types.js';
@@ -403,14 +403,18 @@ export async function listPayments(
 }
 
 // ---------- Accountant dashboard ----------
+// paidAt is stored as UTC with no time zone. To get the Nepal calendar day it has to be read as UTC
+// first and then converted: a single AT TIME ZONE would treat it as already being Nepal time.
+
+const TREND_DAYS = 30;
 
 export async function collectionsSummary() {
   const today = todayInNepal();
   const rows = await prisma.$queryRaw<{ today: bigint | null; month: bigint | null }[]>`
     SELECT
-      SUM(CASE WHEN ("paidAt" AT TIME ZONE 'Asia/Kathmandu')::date = ${today}::date
+      SUM(CASE WHEN ("paidAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kathmandu')::date = ${today}::date
           THEN "amountPaisa" ELSE 0 END) AS today,
-      SUM(CASE WHEN date_trunc('month', "paidAt" AT TIME ZONE 'Asia/Kathmandu') = date_trunc('month', ${today}::date)
+      SUM(CASE WHEN date_trunc('month', "paidAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kathmandu') = date_trunc('month', ${today}::date)
           THEN "amountPaisa" ELSE 0 END) AS month
     FROM "Payment" WHERE status = 'SUCCESS'
   `;
@@ -442,15 +446,22 @@ export async function outstandingByProgram() {
   }));
 }
 
+/** Every one of the last 30 days, with nothing-collected days as zero, so time reads true. */
 export async function collectionsTrend() {
+  const from = addDays(todayInNepal(), 1 - TREND_DAYS);
   const rows = await prisma.$queryRaw<{ date: Date; total: bigint }[]>`
-    SELECT ("paidAt" AT TIME ZONE 'Asia/Kathmandu')::date AS date, SUM("amountPaisa") AS total
+    SELECT ("paidAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kathmandu')::date AS date,
+      SUM("amountPaisa") AS total
     FROM "Payment"
-    WHERE status = 'SUCCESS' AND "paidAt" > NOW() - INTERVAL '30 days'
-    GROUP BY 1 ORDER BY 1
+    WHERE status = 'SUCCESS'
+      AND ("paidAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kathmandu')::date >= ${from}::date
+    GROUP BY 1
   `;
-  return rows.map((row) => ({
-    date: row.date.toISOString().slice(0, 10),
-    totalPaisa: Number(row.total),
-  }));
+  const totals = new Map(
+    rows.map((row) => [row.date.toISOString().slice(0, 10), Number(row.total)]),
+  );
+  return Array.from({ length: TREND_DAYS }, (_, index) => {
+    const date = addDays(from, index);
+    return { date, totalPaisa: totals.get(date) ?? 0 };
+  });
 }

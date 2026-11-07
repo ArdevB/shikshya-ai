@@ -4,13 +4,13 @@ An AI-powered management system for universities, colleges and schools in Nepal,
 
 The build is split into five phases, specified in [docs/phases](docs/phases). Conventions for contributors are in [CLAUDE.md](CLAUDE.md).
 
-| Phase | Scope                                                                         | Status                                                            |
-| ----- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done                                                              |
-| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done                                                              |
-| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Built, see [the sandbox check](#checking-payments-in-the-sandbox) |
-| 4     | AI assistant, at-risk prediction, quiz and timetable generators               |                                                                   |
-| 5     | Testing, security hardening, deployment, documentation                        |                                                                   |
+| Phase | Scope                                                                         | Status |
+| ----- | ----------------------------------------------------------------------------- | ------ |
+| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done   |
+| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done   |
+| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Done   |
+| 4     | AI assistant, at-risk prediction, quiz and timetable generators               |        |
+| 5     | Testing, security hardening, deployment, documentation                        |        |
 
 ## Project layout
 
@@ -73,16 +73,17 @@ Admins can import students from a CSV file under **Students → Import CSV**, wh
 
 ## Commands
 
-| Command           | What it does                                                 |
-| ----------------- | ------------------------------------------------------------ |
-| `pnpm dev`        | Runs the web app (port 5173) and API (port 4000)             |
-| `pnpm test`       | Runs all tests. Starts its own throwaway Postgres            |
-| `pnpm lint`       | ESLint and the Prettier check                                |
-| `pnpm format`     | Formats the code with Prettier                               |
-| `pnpm typecheck`  | Type-checks every workspace                                  |
-| `pnpm build`      | Production builds                                            |
-| `pnpm db:migrate` | Applies database migrations, creating new ones as needed     |
-| `pnpm db:seed`    | Replaces the database with demo data (refused in production) |
+| Command             | What it does                                                 |
+| ------------------- | ------------------------------------------------------------ |
+| `pnpm dev`          | Runs the web app (port 5173) and API (port 4000)             |
+| `pnpm test`         | Runs all tests. Starts its own throwaway Postgres            |
+| `pnpm lint`         | ESLint and the Prettier check                                |
+| `pnpm format`       | Formats the code with Prettier                               |
+| `pnpm typecheck`    | Type-checks every workspace                                  |
+| `pnpm build`        | Production builds                                            |
+| `pnpm db:migrate`   | Applies database migrations, creating new ones as needed     |
+| `pnpm db:seed`      | Replaces the database with demo data (refused in production) |
+| `pnpm khalti:check` | Shows what Khalti says to a small test payment               |
 
 The AI service has its own Python 3.11 environment:
 
@@ -98,6 +99,15 @@ uvicorn app.main:app --port 8000
 ## Settings
 
 Settings for the API are in `apps/api/.env`, described in [apps/api/.env.example](apps/api/.env.example). The web app works with no settings in development, because Vite forwards `/api` to the API; see [apps/web/.env.example](apps/web/.env.example).
+
+## Getting around
+
+- **Search:** press `Ctrl K` (`Cmd K` on a Mac) or use the search box at the top to reach any page your role can open. Type, then use the arrow keys and Enter.
+- **Sidebar:** **Collapse**, at its foot, shrinks it to icons. This device remembers the choice.
+- **Phones:** a bar along the bottom holds your four main places, and **More** opens everything else.
+- **Keyboard:** the first Tab on any page offers a link that skips to the content. Tabs and attendance choices move with the arrow keys. After a page change, focus moves to the new page and screen readers announce it.
+- **Less motion:** the app follows your device's "reduce motion" setting. Animations stop and nothing else changes.
+- **Charts:** every chart has **View as table** underneath, for exact numbers.
 
 ## Attendance rules
 
@@ -135,7 +145,7 @@ All money is stored as integer paisa. Staff type rupees, and the API converts th
 - **Invoices** are generated per semester from its fee structure. Generating twice creates no duplicates.
 - **Fines** are recalculated from the due date by a daily job, so running it twice changes nothing.
 - **Online payments** go through one `PaymentGateway` interface, with eSewa and Khalti behind it. A redirect back from a gateway is never believed: the API asks the gateway directly, checks the amount matches exactly, and only then credits the invoice. Duplicate callbacks do nothing. A payment left unconfirmed is rechecked every 15 minutes and given up on after a day.
-- **Khalti** needs a key in `KHALTI_SECRET_KEY`. Until then, choosing it explains that it is not set up.
+- **Khalti** needs a key in `KHALTI_SECRET_KEY`. Until then, the payment dialog shows it as not available.
 
 ### Checking payments in the sandbox
 
@@ -143,10 +153,12 @@ Automated tests cover the payment logic against mocked gateway responses. A real
 
 1. Start the app, log in as `student02@shikshya.test` and open **Fees**.
 2. **eSewa:** choose **Pay now → Pay with eSewa**, then log in on eSewa's test page with ID `9711111111`, password `Nepal@123`, MPIN `1122` and token `123456`.
-3. **Khalti:** first create a merchant account at <https://test-admin.khalti.com> (the login OTP is `987654`), put its `live_secret_key` in `apps/api/.env` as `KHALTI_SECRET_KEY`, and restart. Run `pnpm khalti:check` to confirm Khalti accepts it. Then, still as `student02@shikshya.test`, pay the **Rs. 150 library fine**, choosing **Pay with Khalti** and using ID `9800000000`, MPIN `1111` and OTP `987654`.
+3. **Khalti:** first create a merchant account at <https://test-admin.khalti.com> (the login OTP is `987654`), put its `live_secret_key` in `apps/api/.env` as `KHALTI_SECRET_KEY`, and restart. Run `pnpm khalti:check` to confirm Khalti accepts it. Then, still as `student02@shikshya.test`, pay the **Rs. 150 library fine**, choosing **Pay with Khalti**, then **Khalti Wallet**, and using ID `9800000001`, MPIN `1111` and OTP `987654`.
 4. You should return to a "Payment successful" page where the receipt downloads, and the invoice should now show as paid.
 
 Khalti's test mode only accepts small amounts, about [Rs. 10 to Rs. 200](https://docs.khalti.com/gotchas/), which is why the Rs. 51,500 tuition invoices cannot be paid with it in the sandbox. If Khalti refuses a payment, the app shows Khalti's own reason. `pnpm khalti:check` prints what Khalti says to a small test payment, which tells a problem with your key from one on Khalti's side.
+
+Khalti's test wallets, `9800000000` to `9800000005`, are shared by everyone using the sandbox, so one can be locked by other people's wrong attempts ("Khalti MPIN has been locked"). If that happens, use another. On 7 November 2026, `9800000000` was locked and `9800000001` worked.
 
 These test values come from [eSewa's](https://developer.esewa.com.np/pages/Epay) and [Khalti's](https://docs.khalti.com/khalti-epayment/) developer docs. For production, set your own keys and URLs in `apps/api/.env`.
 
