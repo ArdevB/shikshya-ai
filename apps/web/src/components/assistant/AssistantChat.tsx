@@ -153,9 +153,7 @@ export function AssistantChat({
       { id: replyId, role: 'ASSISTANT', text: '', toolsUsed: [] },
     ]);
     const updateReply = (change: (reply: LiveMessage) => LiveMessage) =>
-      setMessages((current) =>
-        current.map((item) => (item.id === replyId ? change(item) : item)),
-      );
+      setMessages((current) => current.map((item) => (item.id === replyId ? change(item) : item)));
 
     try {
       await sendAssistantMessage(

@@ -482,9 +482,7 @@ export function QuizReviewPage() {
     mutationFn: async () => {
       const waiting = quiz.data?.questions.filter((question) => !question.approved) ?? [];
       await Promise.all(
-        waiting.map((question) =>
-          api.post(`/quizzes/${id}/questions/${question.id}/approve`),
-        ),
+        waiting.map((question) => api.post(`/quizzes/${id}/questions/${question.id}/approve`)),
       );
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['/quizzes', id] }),

@@ -275,7 +275,11 @@ export async function updateQuestion(
 ) {
   await draftQuestion(user, quizId, questionId);
   const options =
-    body.type === 'MCQ' ? (body.options ?? []) : body.type === 'TRUE_FALSE' ? ['True', 'False'] : null;
+    body.type === 'MCQ'
+      ? (body.options ?? [])
+      : body.type === 'TRUE_FALSE'
+        ? ['True', 'False']
+        : null;
   const updated = await prisma.quizQuestion.update({
     where: { id: questionId },
     data: {
@@ -530,9 +534,7 @@ export async function submitQuiz(
   const answers = quiz.questions.map((question) => {
     const answer = given.get(question.id) ?? '';
     const isCorrect =
-      question.type === 'SHORT_ANSWER' && answer
-        ? null
-        : answer === question.correctAnswer;
+      question.type === 'SHORT_ANSWER' && answer ? null : answer === question.correctAnswer;
     return { questionId: question.id, answer, isCorrect };
   });
 

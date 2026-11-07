@@ -231,7 +231,10 @@ describe('cross-user requests', () => {
   });
 
   it('a teacher sees their own class, and another teacher finds nothing', async () => {
-    let requests = fakeLlm(callTool('get_section_attendance', { courseCode: 'CSC364' }), answer('.'));
+    let requests = fakeLlm(
+      callTool('get_section_attendance', { courseCode: 'CSC364' }),
+      answer('.'),
+    );
     await send(teacherA, 'Who is below 75%?');
     const data = JSON.parse(toolResult(requests).result) as {
       studentsBelow75: { rollNumber: string }[];
@@ -247,7 +250,10 @@ describe('cross-user requests', () => {
   });
 
   it('an admin can see any class', async () => {
-    const requests = fakeLlm(callTool('get_section_attendance', { courseCode: 'csc364' }), answer('.'));
+    const requests = fakeLlm(
+      callTool('get_section_attendance', { courseCode: 'csc364' }),
+      answer('.'),
+    );
     await send(admin, 'Who is below 75% in CSC364?');
     expect(toolResult(requests).result).toContain(fx.studentB.rollNumber);
   });

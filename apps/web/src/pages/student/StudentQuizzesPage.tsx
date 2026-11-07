@@ -1,8 +1,4 @@
-import type {
-  StudentQuizState,
-  StudentQuizSummaryView,
-  StudentQuizView,
-} from '@shikshya/shared';
+import type { StudentQuizState, StudentQuizSummaryView, StudentQuizView } from '@shikshya/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, FileQuestion, X } from 'lucide-react';
 import { type FormEvent, useState } from 'react';

@@ -60,14 +60,14 @@ export function errorHandler(
         : isRestrictViolation(error)
           ? inUse()
           : error instanceof multer.MulterError
-          ? new ApiError(
-              400,
-              'UPLOAD_REJECTED',
-              error.code === 'LIMIT_FILE_SIZE'
-                ? 'Each file must be 10 MB or smaller'
-                : error.message,
-            )
-          : null;
+            ? new ApiError(
+                400,
+                'UPLOAD_REJECTED',
+                error.code === 'LIMIT_FILE_SIZE'
+                  ? 'Each file must be 10 MB or smaller'
+                  : error.message,
+              )
+            : null;
 
   if (known) {
     res.status(known.status).json({

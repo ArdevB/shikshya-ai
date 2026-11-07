@@ -325,7 +325,9 @@ export async function computeRiskPredictions(now = new Date(), actorId: string |
     where: { courseOfferingId: { in: offerings.map((offering) => offering.id) } },
     select: { studentId: true, courseOfferingId: true, level: true, nudgedAt: true },
   });
-  const previousRows = new Map(existing.map((row) => [`${row.studentId}|${row.courseOfferingId}`, row]));
+  const previousRows = new Map(
+    existing.map((row) => [`${row.studentId}|${row.courseOfferingId}`, row]),
+  );
 
   let flagged = 0;
   let nudged = 0;
@@ -482,10 +484,7 @@ export async function riskSummary(): Promise<RiskSummary> {
     },
   });
 
-  const sections = new Map<
-    string,
-    RiskSummary['sections'][number] & { flagged: Set<string> }
-  >();
+  const sections = new Map<string, RiskSummary['sections'][number] & { flagged: Set<string> }>();
   let computedAt: Date | null = null;
   for (const row of rows) {
     const section = row.courseOffering.section;

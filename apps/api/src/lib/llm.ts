@@ -27,8 +27,7 @@ export interface LlmToolResult {
 }
 
 export type LlmInput =
-  | { kind: 'text'; text: string }
-  | { kind: 'toolResults'; results: LlmToolResult[] };
+  { kind: 'text'; text: string } | { kind: 'toolResults'; results: LlmToolResult[] };
 
 export interface LlmTurnRequest {
   system: string;

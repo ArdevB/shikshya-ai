@@ -321,7 +321,7 @@ export function AppLayout() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === '1');
   const main = useRef<HTMLElement>(null);
-  const firstRender = useRef(true);
+  const lastPath = useRef(pathname);
   const focusAfterDialog = useRef(false);
   const [announcement, setAnnouncement] = useState('');
   const [pendingPath, setPendingPath] = useState<string | null>(null);
@@ -354,10 +354,10 @@ export function AppLayout() {
   useEffect(() => {
     setDrawerOpen(false);
     setPendingPath(null);
-    if (firstRender.current) {
-      firstRender.current = false;
-      return;
-    }
+    // Only an actual page change moves focus. Comparing paths also holds under React's StrictMode,
+    // which runs this twice on first load in development.
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
     window.scrollTo({ top: 0, behavior: 'instant' });
     // A dialog still on screen keeps focus. It moves here once that closes: see below.
     if (document.querySelector('[role="dialog"]')) focusAfterDialog.current = true;

@@ -258,9 +258,7 @@ export async function sendAssistantMessage(
 
   // Before the new message is stored, so it does not appear twice in a replay.
   const history =
-    body.conversationId && !conversation.providerStateId
-      ? await transcript(conversation.id)
-      : '';
+    body.conversationId && !conversation.providerStateId ? await transcript(conversation.id) : '';
 
   await prisma.chatMessage.create({
     data: {
@@ -278,7 +276,9 @@ export async function sendAssistantMessage(
   let previousId = conversation.providerStateId;
   let input: LlmInput = {
     kind: 'text',
-    text: history ? `Earlier in this conversation:\n${history}\n\nNow: ${body.message}` : body.message,
+    text: history
+      ? `Earlier in this conversation:\n${history}\n\nNow: ${body.message}`
+      : body.message,
   };
   let answer = '';
   let tokensIn = 0;

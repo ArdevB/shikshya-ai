@@ -4,13 +4,13 @@ An AI-powered management system for universities, colleges and schools in Nepal,
 
 The build is split into five phases, specified in [docs/phases](docs/phases). Conventions for contributors are in [CLAUDE.md](CLAUDE.md).
 
-| Phase | Scope                                                                         | Status |
-| ----- | ----------------------------------------------------------------------------- | ------ |
-| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done   |
-| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done   |
-| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Done   |
+| Phase | Scope                                                                         | Status                                 |
+| ----- | ----------------------------------------------------------------------------- | -------------------------------------- |
+| 1     | Monorepo, login and roles, academic structure, students, teachers, attendance | Done                                   |
+| 2     | Timetable, exams and results, assignments, notices, dashboards                | Done                                   |
+| 3     | Fees, eSewa/Khalti, PDFs, notifications                                       | Done                                   |
 | 4     | AI assistant, at-risk prediction, quiz and timetable generators               | Built. See [AI features](#ai-features) |
-| 5     | Testing, security hardening, deployment, documentation                        |        |
+| 5     | Testing, security hardening, deployment, documentation                        |                                        |
 
 ## Project layout
 
@@ -80,17 +80,17 @@ Admins can import students from a CSV file under **Students → Import CSV**, wh
 
 ## Commands
 
-| Command             | What it does                                                 |
-| ------------------- | ------------------------------------------------------------ |
-| `pnpm dev`          | Runs the web app (5173), API (4000) and AI service (8000)    |
-| `pnpm test`         | Runs all tests. Starts its own throwaway Postgres            |
-| `pnpm lint`         | ESLint and the Prettier check                                |
-| `pnpm format`       | Formats the code with Prettier                               |
-| `pnpm typecheck`    | Type-checks every workspace                                  |
-| `pnpm build`        | Production builds                                            |
-| `pnpm db:migrate`   | Applies database migrations, creating new ones as needed     |
-| `pnpm db:seed`      | Replaces the database with demo data (refused in production) |
-| `pnpm khalti:check` | Shows what Khalti says to a small test payment               |
+| Command             | What it does                                                   |
+| ------------------- | -------------------------------------------------------------- |
+| `pnpm dev`          | Runs the web app (5173), API (4000) and AI service (8000)      |
+| `pnpm test`         | Runs all tests. Starts its own throwaway Postgres              |
+| `pnpm lint`         | ESLint and the Prettier check                                  |
+| `pnpm format`       | Formats the code with Prettier                                 |
+| `pnpm typecheck`    | Type-checks every workspace                                    |
+| `pnpm build`        | Production builds                                              |
+| `pnpm db:migrate`   | Applies database migrations, creating new ones as needed       |
+| `pnpm db:seed`      | Replaces the database with demo data (refused in production)   |
+| `pnpm khalti:check` | Shows what Khalti says to a small test payment                 |
 | `pnpm ai:check`     | Tries Gemini and the AI service for real, using a little quota |
 
 In `apps/ai`, with its `.venv` active: `pytest`, `ruff check .`, and `python -m ml.train` to retrain the at-risk model.

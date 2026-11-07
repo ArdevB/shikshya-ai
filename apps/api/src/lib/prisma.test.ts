@@ -3,7 +3,8 @@ import { ApiError } from './errors.js';
 import { errorHandler } from '../middleware/errorHandler.js';
 import { isConnectionError, retryOnConnectionError } from './prisma.js';
 
-const dropped = () => Object.assign(new Error('Server has closed the connection.'), { code: 'P1017' });
+const dropped = () =>
+  Object.assign(new Error('Server has closed the connection.'), { code: 'P1017' });
 
 describe('retryOnConnectionError', () => {
   it('tries again after a dropped connection', async () => {

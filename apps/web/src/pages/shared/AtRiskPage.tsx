@@ -1,9 +1,4 @@
-import type {
-  Paginated,
-  RiskLevel,
-  RiskPredictionView,
-  RiskSummary,
-} from '@shikshya/shared';
+import type { Paginated, RiskLevel, RiskPredictionView, RiskSummary } from '@shikshya/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, HeartHandshake, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
@@ -161,7 +156,11 @@ function PredictionList({ canReview }: { canReview: boolean }) {
                       </p>
                     ) : (
                       canReview && (
-                        <Button variant="outline" size="sm" onClick={() => setReviewing(prediction)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setReviewing(prediction)}
+                        >
                           <HeartHandshake /> Mark as reviewed
                         </Button>
                       )
@@ -203,8 +202,7 @@ export function AdminAtRiskPage() {
     queryFn: () => api.get<RiskSummary>('/risk/summary'),
   });
   const recompute = useMutation({
-    mutationFn: () =>
-      api.post<{ computed: number; flagged: number }>('/risk/recompute'),
+    mutationFn: () => api.post<{ computed: number; flagged: number }>('/risk/recompute'),
     onSuccess: async ({ computed, flagged }) => {
       toast.success(`Checked ${computed} records. ${flagged} flagged.`);
       await queryClient.invalidateQueries({ queryKey: KEY });
@@ -261,7 +259,8 @@ export function AdminAtRiskPage() {
                 />
                 {summary.data.computedAt && (
                   <p className="mt-2 text-xs text-muted-foreground">
-                    Counts are per course. Last worked out {formatDateTime(summary.data.computedAt)}.
+                    Counts are per course. Last worked out {formatDateTime(summary.data.computedAt)}
+                    .
                   </p>
                 )}
               </>

@@ -68,7 +68,12 @@ describe('classesNeededToReachThreshold', () => {
   });
 
   it('really does reach the threshold, and one fewer does not', () => {
-    for (const [attended, total] of [[17, 25], [10, 30], [1, 2], [29, 40]] as const) {
+    for (const [attended, total] of [
+      [17, 25],
+      [10, 30],
+      [1, 2],
+      [29, 40],
+    ] as const) {
       const needed = classesNeededToReachThreshold(attended, total);
       expect((attended + needed) / (total + needed)).toBeGreaterThanOrEqual(0.75);
       expect((attended + needed - 1) / (total + needed - 1)).toBeLessThan(0.75);

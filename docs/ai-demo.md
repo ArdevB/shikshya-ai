@@ -15,18 +15,18 @@ Features 2 and 4 work with no Gemini key at all.
 
 Open the sparkle button at the bottom right, or **Assistant** in the menu.
 
-| Log in as | Ask | What to expect |
-| --- | --- | --- |
-| `student03@shikshya.test` | What is my attendance like? | Their real figures, and the classes needed to reach 75%. "Checked attendance" appears above the answer. |
-| `student01@shikshya.test` | What's due in the next two weeks? | Their assignments and exams. |
-| `student01@shikshya.test` | How much do I owe in fees? | Their invoices, in rupees. |
-| `student01@shikshya.test` | What marks did student02 get? | A refusal. No tool even accepts another student. |
-| `student01@shikshya.test` | Who is below 75% in my class? | A refusal. The teacher tool is not offered to students at all. |
-| `student01@shikshya.test` | How many days late can I pay my fees? | The answer from the college rules: a 7 day grace period. |
-| `student01@shikshya.test` | What is the capital of France? | "I don't know". It only answers from college data. |
-| `parent1@shikshya.test` | How is attendance? | With two children, it asks which one. |
-| `teacher1@shikshya.test` | Who is below 75% in CSC364? | The low-attendance list for that class. |
-| `teacher2@shikshya.test` | Who is below 75% in CSC364? | Nothing, unless that teacher teaches it. |
+| Log in as                 | Ask                                   | What to expect                                                                                          |
+| ------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `student03@shikshya.test` | What is my attendance like?           | Their real figures, and the classes needed to reach 75%. "Checked attendance" appears above the answer. |
+| `student01@shikshya.test` | What's due in the next two weeks?     | Their assignments and exams.                                                                            |
+| `student01@shikshya.test` | How much do I owe in fees?            | Their invoices, in rupees.                                                                              |
+| `student01@shikshya.test` | What marks did student02 get?         | A refusal. No tool even accepts another student.                                                        |
+| `student01@shikshya.test` | Who is below 75% in my class?         | A refusal. The teacher tool is not offered to students at all.                                          |
+| `student01@shikshya.test` | How many days late can I pay my fees? | The answer from the college rules: a 7 day grace period.                                                |
+| `student01@shikshya.test` | What is the capital of France?        | "I don't know". It only answers from college data.                                                      |
+| `parent1@shikshya.test`   | How is attendance?                    | With two children, it asks which one.                                                                   |
+| `teacher1@shikshya.test`  | Who is below 75% in CSC364?           | The low-attendance list for that class.                                                                 |
+| `teacher2@shikshya.test`  | Who is below 75% in CSC364?           | Nothing, unless that teacher teaches it.                                                                |
 
 **Explain:** the model never gets to choose whose data it sees. The tool list is filtered by role, and each tool works out the student from who is logged in, then calls the same service and permission check as the normal API. A prompt cannot change that.
 

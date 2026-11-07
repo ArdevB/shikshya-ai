@@ -49,7 +49,11 @@ try {
     onText: () => undefined,
   });
   const call = first.toolCalls[0];
-  report(Boolean(call), 'Tool calling', call ? `asked for ${call.name}` : 'it did not use the tool');
+  report(
+    Boolean(call),
+    'Tool calling',
+    call ? `asked for ${call.name}` : 'it did not use the tool',
+  );
 
   if (call) {
     const second = await llm.turn({

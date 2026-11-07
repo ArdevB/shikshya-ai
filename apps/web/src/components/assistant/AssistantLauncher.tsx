@@ -41,11 +41,7 @@ export function AssistantLauncher() {
               <Plus />
             </Button>
             <Button variant="ghost" size="icon" asChild>
-              <Link
-                to="/assistant"
-                aria-label="Open the full page"
-                onClick={() => setOpen(false)}
-              >
+              <Link to="/assistant" aria-label="Open the full page" onClick={() => setOpen(false)}>
                 <Maximize2 />
               </Link>
             </Button>

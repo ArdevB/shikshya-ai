@@ -821,7 +821,6 @@ async function main() {
     ],
   });
 
-
   // ---------- Phase 4 ----------
 
   // College rules, so the assistant has something to quote. They have no embeddings yet, so search

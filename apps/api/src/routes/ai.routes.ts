@@ -154,7 +154,11 @@ export function quizRoutes() {
     res
       .status(201)
       .json(
-        await quizzes.submitQuiz(currentUser(req), param(req, 'id'), parseBody(req, quizSubmitBody)),
+        await quizzes.submitQuiz(
+          currentUser(req),
+          param(req, 'id'),
+          parseBody(req, quizSubmitBody),
+        ),
       );
   });
 
@@ -195,7 +199,11 @@ export function quizRoutes() {
   });
   router.post('/:id/publish', teacher, async (req, res) => {
     res.json(
-      await quizzes.publishQuiz(currentUser(req), param(req, 'id'), parseBody(req, quizPublishBody)),
+      await quizzes.publishQuiz(
+        currentUser(req),
+        param(req, 'id'),
+        parseBody(req, quizPublishBody),
+      ),
     );
   });
   router.get('/:id/attempts', staff, async (req, res) => {
@@ -237,7 +245,11 @@ export function quizRoutes() {
   });
   router.post('/:id/questions/:questionId/regenerate', teacher, async (req, res) => {
     res.json(
-      await quizzes.regenerateQuestion(currentUser(req), param(req, 'id'), param(req, 'questionId')),
+      await quizzes.regenerateQuestion(
+        currentUser(req),
+        param(req, 'id'),
+        param(req, 'questionId'),
+      ),
     );
   });
   return router;

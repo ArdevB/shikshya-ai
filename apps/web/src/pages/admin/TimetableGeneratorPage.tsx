@@ -185,8 +185,7 @@ function Inputs({
         theoryPeriods: input.theoryPeriods,
         labPeriods: input.labPeriods,
       }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['generator-inputs', semesterId] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['generator-inputs', semesterId] }),
     onError: (error) => toast.error(error.message),
   });
   const teacher = inputs.teachers.find((item) => item.id === teacherId);
@@ -473,7 +472,10 @@ function Proposal({
       <ScoreLine proposal={proposal} clashes={problems.length} />
 
       {problems.length > 0 ? (
-        <div role="alert" className="rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm">
+        <div
+          role="alert"
+          className="rounded-2xl border border-accent/40 bg-accent-soft p-4 text-sm"
+        >
           <p className="flex items-center gap-2 font-semibold">
             <AlertTriangle className="size-4 text-accent-dark" aria-hidden />
             Please fix these before saving
@@ -557,8 +559,7 @@ export function TimetableGeneratorPage() {
   });
 
   const generate = useMutation({
-    mutationFn: () =>
-      api.post<TimetableProposal>('/timetable-generator/generate', { semesterId }),
+    mutationFn: () => api.post<TimetableProposal>('/timetable-generator/generate', { semesterId }),
     onSuccess: (result) => {
       setProposal(result);
       setAttempt((value) => value + 1);
@@ -635,7 +636,9 @@ export function TimetableGeneratorPage() {
           <div className="space-y-2">
             <h2 className="flex flex-wrap items-center gap-2 font-heading text-lg font-semibold">
               Proposed timetable
-              <Badge>{proposal.status === 'OPTIMAL' ? 'Best possible' : 'Best found in time'}</Badge>
+              <Badge>
+                {proposal.status === 'OPTIMAL' ? 'Best possible' : 'Best found in time'}
+              </Badge>
             </h2>
             <Proposal
               key={attempt}

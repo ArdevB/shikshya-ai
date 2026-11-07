@@ -30,7 +30,9 @@ function aiReplies(routes: Record<string, unknown | ((body: never) => unknown)>)
     const route = routes[path];
     if (route === undefined) return new Response('{}', { status: 500 });
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-    return Response.json(typeof route === 'function' ? (route as (b: never) => unknown)(body as never) : route);
+    return Response.json(
+      typeof route === 'function' ? (route as (b: never) => unknown)(body as never) : route,
+    );
   });
 }
 
@@ -300,7 +302,9 @@ describe('risk predictions', () => {
     const row = await prisma.riskPrediction.findFirstOrThrow({ where: { level: 'HIGH' } });
     const url = `${V1}/risk/${row.id}/review`;
 
-    expect((await api().post(url).set(bearer(teacherB)).send({ note: 'Met them' })).status).toBe(403);
+    expect((await api().post(url).set(bearer(teacherB)).send({ note: 'Met them' })).status).toBe(
+      403,
+    );
     expect((await api().post(url).set(bearer(studentA)).send({ note: 'Fine' })).status).toBe(403);
 
     const reviewed = await api().post(url).set(bearer(teacherA)).send({ note: 'Called home' });
@@ -322,13 +326,15 @@ describe('risk predictions', () => {
     });
 
     await computeRiskPredictions(NOW);
-    expect((await prisma.riskPrediction.findUniqueOrThrow({ where: { id: row.id } })).reviewNote).toBe(
-      'Spoke to them',
-    );
+    expect(
+      (await prisma.riskPrediction.findUniqueOrThrow({ where: { id: row.id } })).reviewNote,
+    ).toBe('Spoke to them');
 
     aiReplies({ '/predict/risk/batch': { results: [result(0.9, 'HIGH'), result(0.1, 'LOW')] } });
     await computeRiskPredictions(NOW);
-    expect((await prisma.riskPrediction.findUniqueOrThrow({ where: { id: row.id } })).reviewNote).toBeNull();
+    expect(
+      (await prisma.riskPrediction.findUniqueOrThrow({ where: { id: row.id } })).reviewNote,
+    ).toBeNull();
   });
 
   it('gives admins counts by section', async () => {
@@ -395,7 +401,9 @@ describe('quizzes', () => {
 
   async function approveAll(quiz: { id: string; questions: { id: string }[] }) {
     for (const question of quiz.questions) {
-      await api().post(url(quiz.id, `/questions/${question.id}/approve`)).set(bearer(teacherA));
+      await api()
+        .post(url(quiz.id, `/questions/${question.id}/approve`))
+        .set(bearer(teacherA));
     }
   }
 
@@ -431,7 +439,10 @@ describe('quizzes', () => {
       courseTitle: 'Software Engineering',
     });
     expect(
-      await prisma.aiCallLog.findFirst({ where: { feature: 'QUIZ' }, orderBy: { createdAt: 'desc' } }),
+      await prisma.aiCallLog.findFirst({
+        where: { feature: 'QUIZ' },
+        orderBy: { createdAt: 'desc' },
+      }),
     ).toMatchObject({ tokensIn: 10, tokensOut: 5, succeeded: true });
   });
 
@@ -497,7 +508,9 @@ describe('quizzes', () => {
     const quiz = await makeDraft();
     await approveAll(quiz);
     expect((await api().get(`${V1}/quizzes/mine`).set(bearer(studentA))).body).toEqual([]);
-    expect((await api().get(`${V1}/quizzes/mine/${quiz.id}`).set(bearer(studentA))).status).toBe(404);
+    expect((await api().get(`${V1}/quizzes/mine/${quiz.id}`).set(bearer(studentA))).status).toBe(
+      404,
+    );
   });
 
   it('lets the teacher edit, delete and regenerate while it is a draft', async () => {
@@ -721,13 +734,15 @@ describe('quizzes', () => {
     expect(submit.status).toBe(409);
   });
 
-  it("keeps students out of classes they are not in", async () => {
+  it('keeps students out of classes they are not in', async () => {
     const quiz = await makePublished();
     await prisma.enrollment.updateMany({
       where: { studentId: fx.studentB.id },
       data: { status: 'DROPPED' },
     });
-    expect((await api().get(`${V1}/quizzes/mine/${quiz.id}`).set(bearer(studentB))).status).toBe(404);
+    expect((await api().get(`${V1}/quizzes/mine/${quiz.id}`).set(bearer(studentB))).status).toBe(
+      404,
+    );
     await prisma.enrollment.updateMany({
       where: { studentId: fx.studentB.id },
       data: { status: 'ACTIVE' },

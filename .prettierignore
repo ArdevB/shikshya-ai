@@ -9,3 +9,5 @@ docs/phases
 CLAUDE.md
 .claude/skills
 skills-lock.json
+apps/ai/ml/metrics.json
+apps/ai/ml/model_card.md

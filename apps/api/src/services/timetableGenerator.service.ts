@@ -57,7 +57,8 @@ async function loadOfferings(semesterId: string) {
   });
   return offerings.map((offering) => ({
     ...offering,
-    theoryPeriods: offering.weeklyTheoryPeriods ?? defaultTheoryPeriods(offering.course.creditHours),
+    theoryPeriods:
+      offering.weeklyTheoryPeriods ?? defaultTheoryPeriods(offering.course.creditHours),
     labPeriods: offering.weeklyLabPeriods ?? defaultLabPeriods(offering.course.hasPractical),
   }));
 }
@@ -307,9 +308,7 @@ export async function generateTimetable(
     solveSeconds: solved.solveSeconds,
     entries: await describe(solved.placements),
     // Not taking the solver's word for it: this is the same check a manual edit goes through.
-    clashes: solved.placements.length
-      ? (await clashesIn(semester, solved.placements)).length
-      : 0,
+    clashes: solved.placements.length ? (await clashesIn(semester, solved.placements)).length : 0,
   };
 }
 

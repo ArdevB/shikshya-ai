@@ -26,28 +26,28 @@ Impossible combinations are never created, which makes the model smaller and fas
 
 ### Hard constraints: these must hold
 
-| Rule | How it is expressed |
-| --- | --- |
-| Each offering gets exactly its required periods | Sum of its variables = required periods |
-| No room is double-booked | At most one variable per room and slot |
-| No teacher is double-booked | At most one variable per teacher and slot |
-| No section is double-booked | At most one variable per section and slot |
-| Labs only in lab rooms | The variable does not exist otherwise |
-| Room capacity is at least the section size | The variable does not exist otherwise |
-| Teacher unavailability is respected | The variable does not exist otherwise |
-| Rooms and teachers used by another semester at the same time stay free | The variable does not exist otherwise |
+| Rule                                                                   | How it is expressed                       |
+| ---------------------------------------------------------------------- | ----------------------------------------- |
+| Each offering gets exactly its required periods                        | Sum of its variables = required periods   |
+| No room is double-booked                                               | At most one variable per room and slot    |
+| No teacher is double-booked                                            | At most one variable per teacher and slot |
+| No section is double-booked                                            | At most one variable per section and slot |
+| Labs only in lab rooms                                                 | The variable does not exist otherwise     |
+| Room capacity is at least the section size                             | The variable does not exist otherwise     |
+| Teacher unavailability is respected                                    | The variable does not exist otherwise     |
+| Rooms and teachers used by another semester at the same time stay free | The variable does not exist otherwise     |
 
 ### Soft constraints: these are minimised
 
 Each kind of problem adds to a penalty, and the solver minimises the weighted total.
 
-| Rule | Measured as | Weight |
-| --- | --- | --- |
-| Avoid more than 3 periods in a row for a teacher | Windows of 4 consecutive busy slots | 6 |
-| Keep a lab's periods back to back | Lab periods with no adjacent lab period | 5 |
-| Spread a course's theory periods across days | Periods beyond the first in one day | 4 |
-| Avoid gaps in a section's day | Empty slots with classes both before and after | 3 |
-| Spread a section's week across its days | Periods in a day beyond a fair share of the week | 2 |
+| Rule                                             | Measured as                                      | Weight |
+| ------------------------------------------------ | ------------------------------------------------ | ------ |
+| Avoid more than 3 periods in a row for a teacher | Windows of 4 consecutive busy slots              | 6      |
+| Keep a lab's periods back to back                | Lab periods with no adjacent lab period          | 5      |
+| Spread a course's theory periods across days     | Periods beyond the first in one day              | 4      |
+| Avoid gaps in a section's day                    | Empty slots with classes both before and after   | 3      |
+| Spread a section's week across its days          | Periods in a day beyond a fair share of the week | 2      |
 
 The weights are a judgement call, and easy to change. A teacher on their feet too long counts for more than a short gap for students.
 

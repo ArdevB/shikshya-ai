@@ -29,6 +29,9 @@ export default async function setup() {
     password: 'shikshya',
     port: 54329,
     persistent: false,
+    // Postgres 18's background I/O workers can outlive the forced stop this package uses on Windows,
+    // and then hold the port, so the next test run cannot start. Tests do not need them.
+    postgresFlags: ['-c', 'io_method=sync'],
     onLog: () => undefined,
   });
   await postgres.initialise();

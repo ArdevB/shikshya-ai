@@ -79,11 +79,12 @@ def test_impossible_values_are_rejected(client: TestClient) -> None:
     assert client.post("/predict/risk", json={"previous_gpa": 5}).status_code == 422
 
 
-def test_training_meets_the_recall_target_and_writes_its_reports() -> None:
-    metrics = train()
+def test_training_meets_the_recall_target_and_writes_its_reports(tmp_path: Path) -> None:
+    # A temporary folder, so running the tests never changes the real model or its reports.
+    metrics = train(tmp_path)
     assert metrics["test"]["recall"] >= 0.75
-    folder = Path(__file__).parent.parent / "ml"
-    assert json.loads((folder / "metrics.json").read_text())["model"] == metrics["model"]
-    card = (folder / "model_card.md").read_text(encoding="utf-8")
+    assert (tmp_path / "risk_model.joblib").exists()
+    assert json.loads((tmp_path / "metrics.json").read_text())["model"] == metrics["model"]
+    card = (tmp_path / "model_card.md").read_text(encoding="utf-8")
     assert "synthetic data" in card
     assert "Limitations" in card
