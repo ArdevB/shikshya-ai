@@ -9,6 +9,7 @@ import { notificationEmailHtml, sendEmail } from '../lib/mail.js';
 import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import { emitToUser } from '../lib/realtime.js';
+import { logger } from '../lib/logger.js';
 
 export interface NotificationPayload {
   title: string;
@@ -70,7 +71,7 @@ export async function notifySafely(run: () => Promise<void>) {
   try {
     await run();
   } catch (error) {
-    console.error('Could not send a notification', error);
+    logger.error({ err: error }, 'Could not send a notification');
   }
 }
 

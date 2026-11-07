@@ -15,6 +15,7 @@ function page<M extends Record<string, unknown>>(load: () => Promise<M>, name: k
   return lazy(async () => ({ default: (await load())[name] as ComponentType }));
 }
 
+const HomePage = page(() => import('@/pages/HomePage'), 'HomePage');
 const login = () => import('@/pages/LoginPage');
 const LoginPage = page(login, 'LoginPage');
 const NotFoundPage = page(() => import('@/pages/NotFoundPage'), 'NotFoundPage');
@@ -121,7 +122,8 @@ const TakeAttendancePage = page(
 function RoleHome() {
   const { user, loading } = useAuth();
   if (loading) return <FullPageSpinner />;
-  return <Navigate to={user ? homePathFor(user.role) : '/login'} replace />;
+  // Visitors get the public homepage. Anyone already logged in goes straight to their dashboard.
+  return user ? <Navigate to={homePathFor(user.role)} replace /> : <HomePage />;
 }
 
 export function App() {

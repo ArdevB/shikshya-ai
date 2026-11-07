@@ -23,6 +23,7 @@ import { gatewayFor, isGatewayName } from './gateways/index.js';
 import type { VerifyResult } from './gateways/types.js';
 import { notifySafely, notifyStudentsAndParents } from './notification.service.js';
 import { canAccessFinance, isFinanceStaff } from './scope.js';
+import { logger } from '../lib/logger.js';
 
 const paymentInclude = {
   invoice: {
@@ -264,7 +265,7 @@ export async function handleCallback(method: string, params: Record<string, unkn
     } catch (error) {
       // The customer is mid-redirect, so they get our result page, not a raw error. The
       // payment stays INITIATED, and the reconciliation job checks it again.
-      console.error(`Could not verify payment ${payment.id}`, error);
+      logger.error({ err: error, paymentId: payment.id }, 'Could not verify payment');
     }
   }
   return { paymentId: payment.id };
@@ -299,7 +300,7 @@ export async function reconcilePayments(now = new Date()) {
     try {
       await applyVerification(payment.id, await gatewayFor(payment.method).verify(payment));
     } catch (error) {
-      console.error(`Could not verify payment ${payment.id}`, error);
+      logger.error({ err: error, paymentId: payment.id }, 'Could not verify payment');
     }
     const expired = now.getTime() - payment.createdAt.getTime() > GIVE_UP_AFTER_MS;
     if (expired) {

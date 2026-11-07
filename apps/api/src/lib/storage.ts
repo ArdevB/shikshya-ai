@@ -1,23 +1,54 @@
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { ALLOWED_UPLOAD_EXTENSIONS, MAX_UPLOAD_BYTES, type StoredFile } from '@shikshya/shared';
-import type { Response } from 'express';
+import type { Request, RequestHandler, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { basename, extname, join, resolve } from 'node:path';
+import { Readable } from 'node:stream';
+import { pipeline } from 'node:stream/promises';
 import multer from 'multer';
 import { env } from '../config/env.js';
 import { badRequest, notFound } from './errors.js';
+import { detectFileType, displayName } from './fileTypes.js';
 
-/**
- * Where uploaded files live. Phase 5 adds a cloud version; callers only know this interface.
- */
+interface Upload {
+  buffer: Buffer;
+  originalname: string;
+  mimetype: string;
+}
+
+/** Where uploaded files live. Callers only know this interface, so the two are interchangeable. */
 export interface StorageService {
-  save(file: { buffer: Buffer; originalname: string; mimetype: string }): Promise<StoredFile>;
+  save(file: Upload): Promise<StoredFile>;
   /** Sends a stored file as a download. */
   send(file: StoredFile, res: Response): Promise<void>;
   remove(file: StoredFile): Promise<void>;
   /** The file's bytes, for reading its contents on the server. */
   read(file: StoredFile): Promise<Buffer>;
+}
+
+/** Stored under a random id, so nobody can guess a name or overwrite someone else's file. */
+const describe = (file: Upload): StoredFile => ({
+  id: `${randomUUID()}${extname(file.originalname).toLowerCase()}`,
+  name: displayName(file.originalname),
+  size: file.buffer.length,
+  mimeType: file.mimetype,
+});
+
+function setDownloadHeaders(file: StoredFile, res: Response) {
+  res.setHeader('Content-Type', file.mimeType);
+  res.setHeader('Content-Length', String(file.size));
+  // Always a download, so an uploaded file can never run as a page on our origin.
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
+  );
 }
 
 class LocalStorage implements StorageService {
@@ -28,17 +59,11 @@ class LocalStorage implements StorageService {
     return join(this.root, basename(file.id));
   }
 
-  async save(file: { buffer: Buffer; originalname: string; mimetype: string }) {
+  async save(file: Upload) {
     await mkdir(this.root, { recursive: true });
-    const extension = extname(file.originalname).toLowerCase();
-    const id = `${randomUUID()}${extension}`;
-    await writeFile(join(this.root, id), file.buffer);
-    return {
-      id,
-      name: basename(file.originalname),
-      size: file.buffer.length,
-      mimeType: file.mimetype,
-    };
+    const stored = describe(file);
+    await writeFile(join(this.root, stored.id), file.buffer);
+    return stored;
   }
 
   async send(file: StoredFile, res: Response) {
@@ -48,13 +73,7 @@ class LocalStorage implements StorageService {
         fail(error.code === 'ENOENT' ? notFound('File') : error);
       });
       stream.once('open', () => {
-        res.setHeader('Content-Type', file.mimeType);
-        res.setHeader('Content-Length', String(file.size));
-        // Always a download, so an uploaded file can never run as a page on our origin.
-        res.setHeader(
-          'Content-Disposition',
-          `attachment; filename*=UTF-8''${encodeURIComponent(file.name)}`,
-        );
+        setDownloadHeaders(file, res);
         stream.pipe(res);
       });
       stream.on('end', () => done());
@@ -70,12 +89,102 @@ class LocalStorage implements StorageService {
   }
 }
 
-export const storage: StorageService = new LocalStorage(resolve(env.UPLOAD_DIR));
+export interface S3Settings {
+  bucket: string;
+  region: string;
+  endpoint?: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+}
+
+const isMissing = (error: unknown) =>
+  error instanceof Error && (error.name === 'NoSuchKey' || error.name === 'NotFound');
+
+/**
+ * Any S3-compatible service: Neon Object Storage, Cloudflare R2, AWS S3. The bucket stays private.
+ * Files go through the API on the way out, so the same permission checks apply to every download.
+ */
+export class S3Storage implements StorageService {
+  private readonly client: S3Client;
+
+  constructor(private readonly settings: S3Settings) {
+    this.client = new S3Client({
+      region: settings.region,
+      ...(settings.endpoint ? { endpoint: settings.endpoint } : {}),
+      // Other providers expect bucket names in the path rather than in the host name.
+      forcePathStyle: Boolean(settings.endpoint),
+      // Not every provider understands the checksums the SDK now adds by default.
+      ...(settings.endpoint
+        ? {
+            requestChecksumCalculation: 'WHEN_REQUIRED' as const,
+            responseChecksumValidation: 'WHEN_REQUIRED' as const,
+          }
+        : {}),
+      credentials: {
+        accessKeyId: settings.accessKeyId,
+        secretAccessKey: settings.secretAccessKey,
+      },
+    });
+  }
+
+  private location(file: StoredFile) {
+    return { Bucket: this.settings.bucket, Key: basename(file.id) };
+  }
+
+  private async open(file: StoredFile) {
+    try {
+      const { Body } = await this.client.send(new GetObjectCommand(this.location(file)));
+      if (!Body) throw notFound('File');
+      return Body;
+    } catch (error) {
+      throw isMissing(error) ? notFound('File') : error;
+    }
+  }
+
+  async save(file: Upload) {
+    const stored = describe(file);
+    await this.client.send(
+      new PutObjectCommand({
+        ...this.location(stored),
+        Body: file.buffer,
+        ContentType: stored.mimeType,
+      }),
+    );
+    return stored;
+  }
+
+  async send(file: StoredFile, res: Response) {
+    const body = await this.open(file);
+    setDownloadHeaders(file, res);
+    await pipeline(body as Readable, res);
+  }
+
+  async remove(file: StoredFile) {
+    await this.client.send(new DeleteObjectCommand(this.location(file)));
+  }
+
+  async read(file: StoredFile) {
+    return Buffer.from(await (await this.open(file)).transformToByteArray());
+  }
+}
+
+function createStorage(): StorageService {
+  if (env.STORAGE_DRIVER === 'local') return new LocalStorage(resolve(env.UPLOAD_DIR));
+  return new S3Storage({
+    // parseEnv has already refused to start if these are missing.
+    bucket: env.S3_BUCKET ?? '',
+    region: env.S3_REGION,
+    endpoint: env.S3_ENDPOINT,
+    accessKeyId: env.S3_ACCESS_KEY_ID ?? '',
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY ?? '',
+  });
+}
+
+export const storage: StorageService = createStorage();
 
 const allowed = new Set<string>(ALLOWED_UPLOAD_EXTENSIONS);
 
-/** Accepts up to 5 files of 10 MB each, of the allowed types. Files are held in memory briefly. */
-export const uploadFiles = multer({
+const receiveFiles = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_BYTES, files: 5 },
   fileFilter: (_req, file, accept) => {
@@ -91,6 +200,37 @@ export const uploadFiles = multer({
     }
   },
 }).array('files', 5);
+
+/** The extension was checked on the way in. Only now are the bytes here to compare against it. */
+function checkContents(req: Request) {
+  for (const file of (req.files as Express.Multer.File[] | undefined) ?? []) {
+    const type = detectFileType(file.buffer, file.originalname);
+    if (!type) {
+      const kind = extname(file.originalname).slice(1);
+      throw badRequest(`"${file.originalname}" does not look like a real ${kind} file.`);
+    }
+    file.mimetype = type;
+  }
+}
+
+/**
+ * Accepts up to 5 files of 10 MB each, of the allowed types, checked by their contents.
+ * Files are held in memory briefly.
+ */
+export const uploadFiles: RequestHandler = (req, res, next) => {
+  receiveFiles(req, res, (error: unknown) => {
+    if (error) {
+      next(error);
+      return;
+    }
+    try {
+      checkContents(req);
+      next();
+    } catch (problem) {
+      next(problem);
+    }
+  });
+};
 
 export const saveAll = (files: Express.Multer.File[] | undefined) =>
   Promise.all((files ?? []).map((file) => storage.save(file)));

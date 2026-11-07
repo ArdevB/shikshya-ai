@@ -62,20 +62,16 @@ export function crudRouter<QS extends ZodTypeAny, BS extends ZodTypeAny>(
   return router;
 }
 
-export function academicRoutes() {
-  const router = Router();
-  router.use('/departments', crudRouter(academic.departments, paginationQuery, departmentBody));
-  router.use('/programs', crudRouter(academic.programs, programListQuery, programBody));
-  router.use(
-    '/academic-years',
-    crudRouter(academic.academicYears, paginationQuery, academicYearBody),
-  );
-  router.use('/semesters', crudRouter(academic.semesters, semesterListQuery, semesterBody));
-  router.use('/sections', crudRouter(academic.sections, sectionListQuery, sectionBody));
-  router.use('/courses', crudRouter(academic.courses, courseListQuery, courseBody));
-  router.use(
+/** Listed one by one, so these routes can be counted along with all the others. */
+export const academicMounts = (): [path: string, routes: Router][] => [
+  ['/departments', crudRouter(academic.departments, paginationQuery, departmentBody)],
+  ['/programs', crudRouter(academic.programs, programListQuery, programBody)],
+  ['/academic-years', crudRouter(academic.academicYears, paginationQuery, academicYearBody)],
+  ['/semesters', crudRouter(academic.semesters, semesterListQuery, semesterBody)],
+  ['/sections', crudRouter(academic.sections, sectionListQuery, sectionBody)],
+  ['/courses', crudRouter(academic.courses, courseListQuery, courseBody)],
+  [
     '/course-offerings',
     crudRouter(academic.courseOfferings, courseOfferingListQuery, courseOfferingBody),
-  );
-  return router;
-}
+  ],
+];

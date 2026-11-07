@@ -11,6 +11,7 @@ import type {
   VerifyInput,
   VerifyResult,
 } from './types.js';
+import { logger } from '../../lib/logger.js';
 
 const headers = () => {
   if (!env.KHALTI_SECRET_KEY) {
@@ -76,7 +77,7 @@ export class KhaltiGateway implements PaymentGateway {
 
     const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     if (!response.ok || typeof body.pidx !== 'string' || typeof body.payment_url !== 'string') {
-      console.error('Khalti initiate failed', response.status, body);
+      logger.error({ status: response.status, body }, 'Khalti initiate failed');
       throw new ApiError(
         502,
         'GATEWAY_ERROR',

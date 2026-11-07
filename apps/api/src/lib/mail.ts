@@ -1,5 +1,6 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import { env } from '../config/env.js';
+import { logger } from './logger.js';
 
 /**
  * With no SMTP server configured, emails are logged instead of sent, so local development
@@ -53,9 +54,9 @@ export async function sendEmail(message: { to: string; subject: string; html: st
   try {
     await transport.sendMail({ from: env.MAIL_FROM, ...message });
     if (!env.SMTP_HOST && env.NODE_ENV === 'development') {
-      console.log(`[email not sent, no SMTP_HOST] to ${message.to}: ${message.subject}`);
+      logger.info({ to: message.to, subject: message.subject }, 'Email not sent: no SMTP_HOST');
     }
   } catch (error) {
-    console.error(`Could not send email to ${message.to}`, error);
+    logger.error({ err: error, to: message.to }, 'Could not send email');
   }
 }

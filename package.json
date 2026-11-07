@@ -13,6 +13,8 @@
     "dev": "concurrently -n shared,api,web,ai -c gray,cyan,magenta,green \"pnpm --filter @shikshya/shared dev\" \"pnpm --filter @shikshya/api dev\" \"pnpm --filter @shikshya/web dev\" \"node scripts/dev-ai.mjs\"",
     "build": "pnpm --filter @shikshya/shared build && pnpm --filter @shikshya/api build && pnpm --filter @shikshya/web build",
     "test": "pnpm --filter @shikshya/shared build && pnpm -r --workspace-concurrency=1 test",
+    "coverage": "pnpm --filter @shikshya/shared build && pnpm --filter @shikshya/api coverage && pnpm --filter @shikshya/web coverage",
+    "e2e": "pnpm --filter @shikshya/shared build && playwright test --config apps/web/e2e/playwright.config.ts",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.65.0",
     "concurrently": "^9.2.0",
     "eslint": "^9.39.0",
     "eslint-config-prettier": "^10.1.8",

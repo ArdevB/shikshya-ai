@@ -20,7 +20,8 @@ function useLiveNotifications() {
   const queryClient = useQueryClient();
   const [received, setReceived] = useState(0);
   useEffect(() => {
-    const socket = io({
+    // In production the site's own host cannot carry WebSockets, so this names the API's.
+    const socket = io((import.meta.env.VITE_SOCKET_URL as string | undefined) ?? '', {
       // A function, so a reconnect uses the current token rather than an expired one.
       auth: (send) => send({ token: getAccessToken() }),
     });

@@ -42,6 +42,9 @@ async function toApiError(response: Response) {
   );
 }
 
+/** Other websites cannot set this header, which the API requires on its cookie routes. */
+const SITE_HEADER = { 'X-Shikshya-Client': 'web' };
+
 let refreshing: Promise<LoginResponse> | null = null;
 
 /**
@@ -49,7 +52,11 @@ let refreshing: Promise<LoginResponse> | null = null;
  * when a token expires, so they share one refresh rather than each trying their own.
  */
 export function refreshSession(): Promise<LoginResponse> {
-  refreshing ??= fetch(`${BASE_URL}/auth/refresh`, { method: 'POST', credentials: 'include' })
+  refreshing ??= fetch(`${BASE_URL}/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: SITE_HEADER,
+  })
     .then(async (response) => {
       if (!response.ok) throw await toApiError(response);
       const session = (await response.json()) as LoginResponse;
@@ -75,6 +82,7 @@ async function send(path: string, { method = 'GET', body }: RequestOptions) {
     method,
     credentials: 'include',
     headers: {
+      ...SITE_HEADER,
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...(body && !isForm ? { 'Content-Type': 'application/json' } : {}),
     },

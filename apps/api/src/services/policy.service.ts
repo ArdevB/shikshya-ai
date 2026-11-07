@@ -7,6 +7,7 @@ import { prisma } from '../lib/prisma.js';
 import { storage } from '../lib/storage.js';
 import type { CurrentUser } from '../middleware/auth.js';
 import { chunkText } from './chunking.js';
+import { logger } from '../lib/logger.js';
 
 const PASSAGES = 4;
 
@@ -61,7 +62,7 @@ async function embedMissingChunks(userId: string, documentId?: string) {
     });
     return chunks.length;
   } catch (error) {
-    console.error('Could not embed policy chunks', error);
+    logger.error({ err: error }, 'Could not embed policy chunks');
     await logAiCall({
       userId,
       feature: 'EMBEDDING',
@@ -188,7 +189,7 @@ export async function searchPolicies(query: string, userId: string): Promise<Pol
         LIMIT ${PASSAGES}`;
       if (rows.length > 0) return rows;
     } catch (error) {
-      console.error('Meaning-based search failed, falling back to keywords', error);
+      logger.error({ err: error }, 'Meaning-based search failed, falling back to keywords');
       await logAiCall({
         userId,
         feature: 'EMBEDDING',

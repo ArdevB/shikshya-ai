@@ -18,7 +18,7 @@ export async function resetDatabase() {
   if (list) await prisma.$executeRawUnsafe(`TRUNCATE ${list} CASCADE`);
 }
 
-const userData = (email: string, role: Role, firstName = 'Test', lastName = 'User') => ({
+export const userData = (email: string, role: Role, firstName = 'Test', lastName = 'User') => ({
   email,
   passwordHash,
   role,

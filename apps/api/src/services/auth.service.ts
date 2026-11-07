@@ -1,5 +1,6 @@
 import type { AuthUser, ChangePasswordBody, LoginBody, LoginResponse } from '@shikshya/shared';
 import { ApiError, unauthorized } from '../lib/errors.js';
+import { logger } from '../lib/logger.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
 import { prisma } from '../lib/prisma.js';
 import {
@@ -49,15 +50,55 @@ export interface SessionResult extends LoginResponse {
   refreshToken: string;
 }
 
+export const MAX_FAILED_LOGINS = 10;
+export const LOCKOUT_MS = 15 * 60 * 1000;
+
+/**
+ * A bcrypt hash of a random value that was thrown away. Checking against it takes as long as a real
+ * check, so an unknown email cannot be told apart from a known one by how fast the reply comes.
+ */
+const NO_SUCH_USER_HASH = '$2b$12$mIkFWd0k8w4ZMW3oh/cHtewqgrQtuFQJ5cj7httrIDQOs/TBoawnu';
+
+/** After too many wrong passwords, from anywhere, the account refuses all logins for a while. */
+async function recordFailedLogin(user: { id: string; email: string }) {
+  const { failedLoginCount } = await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginCount: { increment: 1 } },
+    select: { failedLoginCount: true },
+  });
+  if (failedLoginCount < MAX_FAILED_LOGINS) return;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { failedLoginCount: 0, lockedUntil: new Date(Date.now() + LOCKOUT_MS) },
+  });
+  logger.warn({ userId: user.id }, 'Account locked after repeated failed logins');
+}
+
 export async function login({ email, password }: LoginBody): Promise<SessionResult> {
   const user = await prisma.user.findUnique({ where: { email } });
+  const passwordMatches = await verifyPassword(password, user?.passwordHash ?? NO_SUCH_USER_HASH);
 
-  // The same message for every failure, so this cannot be used to discover which emails exist.
-  const invalid = new ApiError(401, 'INVALID_CREDENTIALS', 'Incorrect email or password');
-  if (!user || !(await verifyPassword(password, user.passwordHash))) throw invalid;
+  // The same message for every failure, including a locked account, so this cannot be used to
+  // discover which emails exist. The message explains locking, for anyone it happens to.
+  const invalid = new ApiError(
+    401,
+    'INVALID_CREDENTIALS',
+    `Incorrect email or password. After ${MAX_FAILED_LOGINS} failed attempts an account is locked for ${LOCKOUT_MS / 60_000} minutes.`,
+  );
+  if (!user) throw invalid;
+  // Checked before the password, so a locked account stays locked even for the right one.
+  if (user.lockedUntil && user.lockedUntil > new Date()) throw invalid;
+  if (!passwordMatches) {
+    await recordFailedLogin(user);
+    throw invalid;
+  }
   if (!user.isActive) throw invalid;
 
-  await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLoginAt: new Date(), failedLoginCount: 0, lockedUntil: null },
+  });
 
   return {
     accessToken: signAccessToken({ sub: user.id, role: user.role }),

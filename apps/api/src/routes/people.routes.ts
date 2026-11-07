@@ -13,6 +13,7 @@ import {
 import { Router } from 'express';
 import multer from 'multer';
 import { ApiError, badRequest } from '../lib/errors.js';
+import { looksLikeText } from '../lib/fileTypes.js';
 import { prisma } from '../lib/prisma.js';
 import { ADMIN_ROLES, currentUser, requireRole } from '../middleware/auth.js';
 import { param, parseBody, parseQuery } from '../middleware/validate.js';
@@ -60,6 +61,7 @@ export function studentRoutes() {
   });
   router.post('/import', adminOnly, csvUpload.single('file'), async (req, res) => {
     if (!req.file) throw badRequest('Attach a CSV file in the "file" field');
+    if (!looksLikeText(req.file.buffer)) throw badRequest('That does not look like a CSV file.');
     const result = await students.importStudents(req.file.buffer.toString('utf8'));
     if (result.errors.length > 0) {
       const count = result.errors.length;

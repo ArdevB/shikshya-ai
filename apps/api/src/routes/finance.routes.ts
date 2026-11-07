@@ -18,6 +18,7 @@ import {
 import { Router, type Response } from 'express';
 import { env } from '../config/env.js';
 import { ADMIN_ROLES, currentUser, requireRole } from '../middleware/auth.js';
+import { paymentCallbackLimit, paymentLimit } from '../middleware/rateLimits.js';
 import { param, parseBody, parseQuery } from '../middleware/validate.js';
 import * as finance from '../services/finance.service.js';
 import { availableGateways } from '../services/gateways/index.js';
@@ -85,6 +86,7 @@ export function invoiceRoutes() {
  */
 export function paymentCallbackRoutes() {
   const router = Router();
+  router.use(paymentCallbackLimit());
   const backToSite = (res: Response, paymentId: string | null) =>
     res.redirect(`${env.WEB_ORIGIN}/payments/result${paymentId ? `?paymentId=${paymentId}` : ''}`);
 
@@ -113,11 +115,12 @@ export function paymentCallbackRoutes() {
 export function paymentRoutes() {
   const router = Router();
   const family = requireRole('STUDENT', 'PARENT', ...FINANCE_ROLES);
+  const limited = paymentLimit();
 
   router.get('/gateways', family, (_req, res) => {
     res.json(availableGateways());
   });
-  router.post('/initiate', requireRole('STUDENT', 'PARENT'), async (req, res) => {
+  router.post('/initiate', limited, requireRole('STUDENT', 'PARENT'), async (req, res) => {
     res
       .status(201)
       .json(await payments.initiatePayment(currentUser(req), parseBody(req, initiatePaymentBody)));
@@ -135,7 +138,7 @@ export function paymentRoutes() {
   router.get('/:id', family, async (req, res) => {
     res.json(await payments.getPayment(currentUser(req), param(req, 'id')));
   });
-  router.post('/:id/refresh', family, async (req, res) => {
+  router.post('/:id/refresh', limited, family, async (req, res) => {
     res.json(await payments.refreshPayment(currentUser(req), param(req, 'id')));
   });
   return router;

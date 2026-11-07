@@ -612,7 +612,7 @@ describe('materials', () => {
       .post(`${V1}/materials`)
       .set(bearer(teacherA))
       .field({ courseOfferingId: fx.offering.id, title: 'Slides' })
-      .attach('files', Buffer.from('x'), 'slides.pptx');
+      .attach('files', Buffer.from('PK\x03\x04 slides'), 'slides.pptx');
     expect(response.status).toBe(201);
 
     const seen = await api()

@@ -3,6 +3,7 @@ import type { ApiErrorBody } from '@shikshya/shared';
 import type { NextFunction, Request, Response } from 'express';
 import multer from 'multer';
 import { ApiError } from '../lib/errors.js';
+import { logger, reportError } from '../lib/logger.js';
 import { isConnectionError } from '../lib/prisma.js';
 
 const inUse = () =>
@@ -17,7 +18,7 @@ const isRestrictViolation = (error: unknown) =>
 
 function fromPrismaError(error: Prisma.PrismaClientKnownRequestError): ApiError | null {
   if (isConnectionError(error)) {
-    console.error(`Database connection problem: ${error.code}`);
+    logger.error({ code: error.code }, 'Database connection problem');
     return new ApiError(
       503,
       'DATABASE_UNAVAILABLE',
@@ -48,7 +49,7 @@ export function notFoundHandler(req: Request, res: Response<ApiErrorBody>) {
 // Express recognises error handlers by their four arguments, so `_next` has to stay.
 export function errorHandler(
   error: unknown,
-  _req: Request,
+  req: Request,
   res: Response<ApiErrorBody>,
   _next: NextFunction,
 ) {
@@ -76,8 +77,12 @@ export function errorHandler(
     return;
   }
 
-  console.error(error);
+  reportError(error, 'Request failed', { requestId: req.id });
   res.status(500).json({
-    error: { code: 'INTERNAL_ERROR', message: 'Something went wrong. Please try again.' },
+    error: {
+      code: 'INTERNAL_ERROR',
+      message: 'Something went wrong. Please try again.',
+      details: { requestId: req.id },
+    },
   });
 }

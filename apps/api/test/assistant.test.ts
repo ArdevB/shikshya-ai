@@ -70,6 +70,10 @@ function events(text: string): AssistantStreamEvent[] {
 }
 
 /** What the tool handed back to the model on the turn after it asked. */
+/** Tool results reach the model between <data> tags. This reads what is inside them. */
+const readData = (result: string): unknown =>
+  JSON.parse(result.replace(/^<data>/, '').replace(/<\/data>$/, ''));
+
 function toolResult(requests: LlmTurnRequest[], index = 1) {
   const input = requests[index]!.input;
   if (input.kind !== 'toolResults') throw new Error('Expected tool results');
@@ -188,7 +192,7 @@ describe('cross-user requests', () => {
     expect(response.status).toBe(200);
     const result = toolResult(requests);
     expect(result.isError).toBe(false);
-    const data = JSON.parse(result.result) as { courses: { percentage: number }[] };
+    const data = readData(result.result) as { courses: { percentage: number }[] };
     expect(data.courses[0]!.percentage).toBe(100);
     expect(result.result).not.toContain(fx.studentB.id);
   });
@@ -196,7 +200,7 @@ describe('cross-user requests', () => {
   it('student B gets their own, different, figures from the same question', async () => {
     const requests = fakeLlm(callTool('get_my_attendance'), answer('You have 0%.'));
     await send(studentB, 'What is my attendance?');
-    const data = JSON.parse(toolResult(requests).result) as {
+    const data = readData(toolResult(requests).result) as {
       courses: { percentage: number; classesNeededToReach75: number }[];
     };
     expect(data.courses[0]!.percentage).toBe(0);
@@ -218,7 +222,7 @@ describe('cross-user requests', () => {
       answer('Which child?'),
     );
     await send(parent, 'How is the other student doing?');
-    const data = JSON.parse(toolResult(requests).result) as { error: string; children: string[] };
+    const data = readData(toolResult(requests).result) as { error: string; children: string[] };
     expect(data.children).toEqual([`${fx.studentA.user.firstName} ${fx.studentA.user.lastName}`]);
     expect(toolResult(requests).result).not.toContain(fx.studentB.id);
   });
@@ -226,7 +230,7 @@ describe('cross-user requests', () => {
   it("a parent gets their child's figures", async () => {
     const requests = fakeLlm(callTool('get_my_attendance'), answer('100%.'));
     await send(parent, "How is my child's attendance?");
-    const data = JSON.parse(toolResult(requests).result) as { courses: { percentage: number }[] };
+    const data = readData(toolResult(requests).result) as { courses: { percentage: number }[] };
     expect(data.courses[0]!.percentage).toBe(100);
   });
 
@@ -236,7 +240,7 @@ describe('cross-user requests', () => {
       answer('.'),
     );
     await send(teacherA, 'Who is below 75%?');
-    const data = JSON.parse(toolResult(requests).result) as {
+    const data = readData(toolResult(requests).result) as {
       studentsBelow75: { rollNumber: string }[];
     };
     expect(data.studentsBelow75.map((student) => student.rollNumber)).toEqual([
@@ -455,7 +459,7 @@ describe('college rules', () => {
       .post(`${V1}/policies`)
       .set(bearer(token))
       .field('title', 'College rules')
-      .attach('files', Buffer.from('rules'), 'rules.pdf');
+      .attach('files', Buffer.from('%PDF-1.4 rules'), 'rules.pdf');
 
   it('lets an admin upload a document, and splits it up', async () => {
     fakeLlm();
@@ -479,7 +483,7 @@ describe('college rules', () => {
       answer('75 percent.'),
     );
     await send(studentA, 'What attendance do I need?');
-    const data = JSON.parse(toolResult(requests).result) as {
+    const data = readData(toolResult(requests).result) as {
       passages: { document: string; text: string }[];
     };
     expect(data.passages[0]!.document).toBe('College rules');
@@ -494,7 +498,7 @@ describe('college rules', () => {
       answer("I don't know."),
     );
     await send(studentA, 'Where can I park?');
-    expect(JSON.parse(toolResult(requests).result)).toEqual({ passages: [] });
+    expect(readData(toolResult(requests).result)).toEqual({ passages: [] });
   });
 
   it('removes the passages when a document is deleted', async () => {

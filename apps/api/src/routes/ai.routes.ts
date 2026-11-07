@@ -19,8 +19,10 @@ import {
 } from '@shikshya/shared';
 import { type Request, Router } from 'express';
 import { ApiError } from '../lib/errors.js';
+import { reportError } from '../lib/logger.js';
 import { uploadFiles } from '../lib/storage.js';
 import { ADMIN_ROLES, currentUser, requireRole } from '../middleware/auth.js';
+import { aiLimit, expensiveAiLimit } from '../middleware/rateLimits.js';
 import { param, parseBody, parseQuery } from '../middleware/validate.js';
 import * as assistant from '../services/assistant/assistant.service.js';
 import * as policies from '../services/policy.service.js';
@@ -33,6 +35,7 @@ const firstFile = (req: Request) => (req.files as Express.Multer.File[] | undefi
 /** Every logged-in role may use the assistant. What it can see depends on who is asking. */
 export function assistantRoutes() {
   const router = Router();
+  router.use(aiLimit());
 
   router.get('/status', (req, res) => {
     res.json(assistant.assistantStatus(currentUser(req)));
@@ -70,7 +73,7 @@ export function assistantRoutes() {
     try {
       await assistant.sendAssistantMessage(user, body, emit);
     } catch (error) {
-      console.error('Assistant stream failed', error);
+      reportError(error, 'Assistant stream failed', { requestId: req.id });
       emit({
         type: 'error',
         code: error instanceof ApiError ? error.code : 'INTERNAL',
@@ -84,6 +87,7 @@ export function assistantRoutes() {
 
 export function policyRoutes() {
   const router = Router();
+  router.use(aiLimit());
   const admin = requireRole(...ADMIN_ROLES);
 
   router.get('/', admin, async (_req, res) => {
@@ -100,7 +104,7 @@ export function policyRoutes() {
         ),
       );
   });
-  router.post('/reindex', admin, async (req, res) => {
+  router.post('/reindex', expensiveAiLimit(), admin, async (req, res) => {
     res.json(await policies.reindexPolicies(currentUser(req)));
   });
   router.delete('/:id', admin, async (req, res) => {
@@ -113,6 +117,7 @@ export function policyRoutes() {
 /** Teachers and admins only. Students and parents have no route to a risk label. */
 export function riskRoutes() {
   const router = Router();
+  router.use(aiLimit());
   const staff = requireRole('TEACHER', ...ADMIN_ROLES);
   const admin = requireRole(...ADMIN_ROLES);
 
@@ -122,7 +127,7 @@ export function riskRoutes() {
   router.get('/summary', admin, async (_req, res) => {
     res.json(await risk.riskSummary());
   });
-  router.post('/recompute', admin, async (req, res) => {
+  router.post('/recompute', expensiveAiLimit(), admin, async (req, res) => {
     res.json(await risk.computeRiskPredictions(new Date(), currentUser(req).id));
   });
   router.post('/:id/review', staff, async (req, res) => {
@@ -139,6 +144,8 @@ export function riskRoutes() {
 
 export function quizRoutes() {
   const router = Router();
+  router.use(aiLimit());
+  const expensive = expensiveAiLimit();
   const teacher = requireRole('TEACHER');
   const staff = requireRole('TEACHER', ...ADMIN_ROLES);
   const student = requireRole('STUDENT');
@@ -165,7 +172,7 @@ export function quizRoutes() {
   router.get('/', staff, async (req, res) => {
     res.json(await quizzes.listQuizzes(currentUser(req), parseQuery(req, quizListQuery)));
   });
-  router.post('/generate', teacher, uploadFiles, async (req, res) => {
+  router.post('/generate', expensive, teacher, uploadFiles, async (req, res) => {
     res
       .status(201)
       .json(
@@ -243,7 +250,7 @@ export function quizRoutes() {
       ),
     );
   });
-  router.post('/:id/questions/:questionId/regenerate', teacher, async (req, res) => {
+  router.post('/:id/questions/:questionId/regenerate', expensive, teacher, async (req, res) => {
     res.json(
       await quizzes.regenerateQuestion(
         currentUser(req),
@@ -257,6 +264,7 @@ export function quizRoutes() {
 
 export function timetableGeneratorRoutes() {
   const router = Router();
+  router.use(aiLimit());
   router.use(requireRole(...ADMIN_ROLES));
 
   router.get('/semesters/:semesterId/inputs', async (req, res) => {
@@ -273,7 +281,7 @@ export function timetableGeneratorRoutes() {
     );
     res.status(204).end();
   });
-  router.post('/generate', async (req, res) => {
+  router.post('/generate', expensiveAiLimit(), async (req, res) => {
     res.json(
       await generator.generateTimetable(currentUser(req), parseBody(req, timetableGenerateBody)),
     );

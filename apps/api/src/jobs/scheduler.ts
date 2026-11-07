@@ -8,6 +8,7 @@ import {
 } from '../services/notification.service.js';
 import { reconcilePayments } from '../services/payment.service.js';
 import { computeRiskPredictions } from '../services/risk.service.js';
+import { reportError } from '../lib/logger.js';
 
 const TIME_ZONE = 'Asia/Kathmandu';
 
@@ -65,7 +66,9 @@ export async function sendScheduledNotices(now = new Date()) {
 
 function run(name: string, job: () => Promise<unknown>) {
   return () => {
-    job().catch((error: unknown) => console.error(`Scheduled job "${name}" failed`, error));
+    job().catch((error: unknown) => {
+      reportError(error, 'Scheduled job failed', { job: name });
+    });
   };
 }
 

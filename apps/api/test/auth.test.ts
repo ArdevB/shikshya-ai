@@ -85,7 +85,7 @@ describe('auth', () => {
   describe('refresh', () => {
     it('issues a new token and retires the old one', async () => {
       const cookie = refreshCookie(await login('student-a@test.local'));
-      const response = await api().post('/api/v1/auth/refresh').set('Cookie', cookie);
+      const response = await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', cookie);
       expect(response.status).toBe(200);
       expect(response.body.accessToken).toEqual(expect.any(String));
       expect(tokenFromCookie(refreshCookie(response))).not.toBe(tokenFromCookie(cookie));
@@ -94,23 +94,23 @@ describe('auth', () => {
     it('ends all sessions when a used token comes back', async () => {
       const email = 'student-b@test.local';
       const first = refreshCookie(await login(email));
-      const second = refreshCookie(await api().post('/api/v1/auth/refresh').set('Cookie', first));
+      const second = refreshCookie(await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', first));
 
-      const reuse = await api().post('/api/v1/auth/refresh').set('Cookie', first);
+      const reuse = await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', first);
       expect(reuse.status).toBe(401);
 
-      const afterReuse = await api().post('/api/v1/auth/refresh').set('Cookie', second);
+      const afterReuse = await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', second);
       expect(afterReuse.status).toBe(401);
     });
 
     it('fails without a cookie', async () => {
-      expect((await api().post('/api/v1/auth/refresh')).status).toBe(401);
+      expect((await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web')).status).toBe(401);
     });
 
     it('stops working after logout', async () => {
       const cookie = refreshCookie(await login('student-a@test.local'));
-      expect((await api().post('/api/v1/auth/logout').set('Cookie', cookie)).status).toBe(204);
-      expect((await api().post('/api/v1/auth/refresh').set('Cookie', cookie)).status).toBe(401);
+      expect((await api().post('/api/v1/auth/logout').set('X-Shikshya-Client', 'web').set('Cookie', cookie)).status).toBe(204);
+      expect((await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', cookie)).status).toBe(401);
     });
   });
 
@@ -154,7 +154,7 @@ describe('auth', () => {
 
       expect((await login(email)).status).toBe(401);
       expect((await login(email, 'NewPassword1')).status).toBe(200);
-      expect((await api().post('/api/v1/auth/refresh').set('Cookie', cookie)).status).toBe(401);
+      expect((await api().post('/api/v1/auth/refresh').set('X-Shikshya-Client', 'web').set('Cookie', cookie)).status).toBe(401);
     });
   });
 

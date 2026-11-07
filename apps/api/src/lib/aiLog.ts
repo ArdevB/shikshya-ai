@@ -1,4 +1,5 @@
 import { prisma } from './prisma.js';
+import { logger } from './logger.js';
 
 export type AiFeature = 'ASSISTANT' | 'EMBEDDING' | 'QUIZ' | 'RISK' | 'TIMETABLE';
 
@@ -18,6 +19,6 @@ export async function logAiCall(call: AiCall) {
   try {
     await prisma.aiCallLog.create({ data: call });
   } catch (error) {
-    console.error('Could not log an AI call', error);
+    logger.error({ err: error }, 'Could not log an AI call');
   }
 }
