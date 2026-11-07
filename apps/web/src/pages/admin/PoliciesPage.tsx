@@ -2,7 +2,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   policyDocumentBody,
   type PolicyDocumentBody,
-  type PolicyDocumentView,
+  type Paginated,
+  PolicyDocumentView,
 } from '@shikshya/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { BookText, Plus, RefreshCw, Trash2 } from 'lucide-react';
@@ -93,7 +94,8 @@ export function PoliciesPage() {
   const [uploading, setUploading] = useState(false);
   const documents = useQuery({
     queryKey: KEY,
-    queryFn: () => api.get<PolicyDocumentView[]>('/policies'),
+    // A college has a handful of these, so one long page is plenty.
+    queryFn: () => api.get<Paginated<PolicyDocumentView>>('/policies?pageSize=100'),
   });
 
   const remove = useMutation({
@@ -116,7 +118,7 @@ export function PoliciesPage() {
     onError: (error) => toast.error(error.message),
   });
 
-  const incomplete = documents.data?.some((item) => item.embeddedChunks < item.chunks);
+  const incomplete = documents.data?.data.some((item) => item.embeddedChunks < item.chunks);
 
   return (
     <>
@@ -144,7 +146,7 @@ export function PoliciesPage() {
         <LoadingRows rows={3} />
       ) : documents.isError ? (
         <ErrorState error={documents.error} onRetry={() => void documents.refetch()} />
-      ) : documents.data.length === 0 ? (
+      ) : documents.data.data.length === 0 ? (
         <EmptyState
           icon={BookText}
           title="No rules added yet"
@@ -152,7 +154,7 @@ export function PoliciesPage() {
         />
       ) : (
         <DataTable
-          rows={documents.data}
+          rows={documents.data.data}
           rowKey={(row) => row.id}
           columns={[
             { header: 'Title', cell: (row) => <span className="font-medium">{row.title}</span> },

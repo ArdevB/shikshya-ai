@@ -27,6 +27,34 @@ test('Visitor sees the public homepage and can go to the login page', async ({ p
   await expect(page).toHaveURL(/\/login$/);
 });
 
+test('The security headers do not break any page', async ({ browser }) => {
+  const visits: [string, string[]][] = [
+    [ADMIN, ['/admin', '/admin/students', '/admin/timetable', '/admin/at-risk']],
+    [TEACHER, ['/teacher', '/teacher/attendance', '/teacher/quizzes']],
+    ['student01@shikshya.test', ['/student', '/student/fees', '/student/results', '/assistant']],
+  ];
+  for (const [email, paths] of visits) {
+    const page = await logIn(browser, email);
+    const problems: string[] = [];
+    page.on('pageerror', (error) => problems.push(error.message));
+    page.on('console', (message) => {
+      if (/content security policy/i.test(message.text())) problems.push(message.text());
+    });
+    for (const path of paths) {
+      await page.goto(path);
+      await page.getByRole('heading', { level: 1 }).first().waitFor();
+    }
+    expect(problems, `on the pages for ${email}`).toEqual([]);
+  }
+});
+
+test('Live notifications connect', async ({ browser }) => {
+  const page = await logIn(browser, ADMIN);
+  const connected = page.waitForResponse((response) => response.url().includes('/socket.io/'));
+  await page.goto('/admin');
+  expect((await connected).ok()).toBe(true);
+});
+
 test('Someone already logged in goes from the homepage to their dashboard', async ({ browser }) => {
   const page = await logIn(browser, ADMIN);
   await page.goto('/');
@@ -78,16 +106,21 @@ test('Teacher takes attendance and enters marks', async ({ browser }) => {
   const firstRow = page.getByRole('radiogroup').first();
   await expect(firstRow).toBeVisible();
   await firstRow.getByRole('radio', { name: /absent/i }).click();
-  await expect(firstRow.getByRole('radio', { name: /absent/i })).toHaveAttribute('aria-checked', 'true');
+  await expect(firstRow.getByRole('radio', { name: /absent/i })).toHaveAttribute(
+    'aria-checked',
+    'true',
+  );
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   await expect(page.getByText('Attendance saved')).toBeVisible();
 
   // It is still there when the page comes back.
   await page.reload();
-  await expect(page.getByRole('radiogroup').first().getByRole('radio', { name: /absent/i })).toHaveAttribute(
-    'aria-checked',
-    'true',
-  );
+  await expect(
+    page
+      .getByRole('radiogroup')
+      .first()
+      .getByRole('radio', { name: /absent/i }),
+  ).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByRole('button', { name: 'Update', exact: true })).toBeVisible();
 
   await page.goto('/teacher/marks');
@@ -95,13 +128,21 @@ test('Teacher takes attendance and enters marks', async ({ browser }) => {
   const openPaper = papers.locator('option:not(:has-text("published"))').nth(1);
   await expect(openPaper).toBeAttached();
   await papers.selectOption((await openPaper.getAttribute('value')) ?? '');
-  const firstMark = page.getByRole('textbox', { name: /^Marks for/ }).or(page.getByRole('spinbutton', { name: /^Marks for/ })).first();
+  const firstMark = page
+    .getByRole('textbox', { name: /^Marks for/ })
+    .or(page.getByRole('spinbutton', { name: /^Marks for/ }))
+    .first();
   await firstMark.fill('18');
   await firstMark.blur();
   await expect(page.getByLabel('Saved').first()).toBeVisible();
 
   await page.reload();
-  await expect(page.getByRole('textbox', { name: /^Marks for/ }).or(page.getByRole('spinbutton', { name: /^Marks for/ })).first()).toHaveValue('18');
+  await expect(
+    page
+      .getByRole('textbox', { name: /^Marks for/ })
+      .or(page.getByRole('spinbutton', { name: /^Marks for/ }))
+      .first(),
+  ).toHaveValue('18');
 });
 
 test('Admin publishes results and a student views the marksheet PDF', async ({ browser }) => {
@@ -109,9 +150,10 @@ test('Admin publishes results and a student views the marksheet PDF', async ({ b
   const teacher = await Api.as(TEACHER);
 
   // A small exam with all its marks in, because publishing is refused while any are missing.
-  const subjects = await teacher.get<{ courseOffering: { id: string; section: { semesterId?: string } } }[]>(
-    'exam-subjects/mine',
-  );
+  const subjects =
+    await teacher.get<{ courseOffering: { id: string; section: { semesterId?: string } } }[]>(
+      'exam-subjects/mine',
+    );
   const offeringId = subjects[0]?.courseOffering.id ?? '';
   const offering = await admin.get<Offering>(`course-offerings/${offeringId}`);
   const exam = await admin.send<{ id: string }>('post', 'exams', {
@@ -126,7 +168,9 @@ test('Admin publishes results and a student views the marksheet PDF', async ({ b
     fullMarks: 100,
     passMarks: 40,
   });
-  const sheet = await teacher.get<{ rows: { studentId: string }[] }>(`exam-subjects/${subject.id}/marks`);
+  const sheet = await teacher.get<{ rows: { studentId: string }[] }>(
+    `exam-subjects/${subject.id}/marks`,
+  );
   for (const row of sheet.rows) {
     await teacher.send('put', `exam-subjects/${subject.id}/marks/${row.studentId}`, {
       marksObtained: 75,
@@ -140,7 +184,9 @@ test('Admin publishes results and a student views the marksheet PDF', async ({ b
   await page.getByRole('dialog').getByRole('button', { name: 'Publish' }).click();
   await expect(page.getByText('Published. Results are now visible.')).toBeVisible();
 
-  const student = await admin.get<{ user: { email: string } }>(`students/${sheet.rows[0]?.studentId}`);
+  const student = await admin.get<{ user: { email: string } }>(
+    `students/${sheet.rows[0]?.studentId}`,
+  );
   const studentPage = await logIn(browser, student.user.email);
   await studentPage.goto('/student/results');
   const downloading = studentPage.waitForEvent('download');
@@ -153,7 +199,10 @@ test('Student pays an invoice through the gateway and gets a receipt', async ({ 
   await page.goto('/student/fees');
 
   await page.getByRole('button', { name: 'Pay now' }).first().click();
-  await page.getByRole('dialog').getByRole('button', { name: /Pay with Khalti/ }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Pay with Khalti/ })
+    .click();
 
   // Off to the gateway and back again, then the payment is confirmed with the gateway directly.
   await page.waitForURL(/\/payments\/result\?paymentId=/);
@@ -164,7 +213,9 @@ test('Student pays an invoice through the gateway and gets a receipt', async ({ 
   await expectPdf(await downloading);
 });
 
-test('Student asks the assistant about attendance and sees their own figures', async ({ browser }) => {
+test('Student asks the assistant about attendance and sees their own figures', async ({
+  browser,
+}) => {
   const email = 'student03@shikshya.test';
   const page = await logIn(browser, email);
   await page.goto('/assistant');
@@ -182,5 +233,7 @@ test('Student asks the assistant about attendance and sees their own figures', a
     `students/${me.studentId}/attendance-summary`,
   );
   const first = summary.courses[0];
-  await expect(conversation.getByText(new RegExp(`${first?.courseCode}: ${first?.percentage}%`))).toBeVisible();
+  await expect(
+    conversation.getByText(new RegExp(`${first?.courseCode}: ${first?.percentage}%`)),
+  ).toBeVisible();
 });

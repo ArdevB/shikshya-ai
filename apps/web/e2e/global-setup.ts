@@ -21,8 +21,10 @@ export default async function globalSetup() {
   const run = (script: string, args: string[]) =>
     execFileSync(process.execPath, [script, ...args], { cwd: apiFolder, env, stdio: 'pipe' });
 
-  // eslint-disable-next-line @typescript-eslint/consistent-type-imports -- loaded from another package's folder
-  const { default: EmbeddedPostgres } = fromApi('embedded-postgres') as typeof import('embedded-postgres');
+  // Loaded from the API's folder, because that is the package that depends on it.
+  const { default: EmbeddedPostgres } = fromApi(
+    'embedded-postgres',
+  ) as typeof import('embedded-postgres');
   const databaseDir = mkdtempSync(join(tmpdir(), 'shikshya-e2e-pg-'));
   const postgres = new EmbeddedPostgres({
     databaseDir,

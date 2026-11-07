@@ -1,5 +1,6 @@
 /// <reference types="vitest/config" />
 import react from '@vitejs/plugin-react';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
@@ -8,8 +9,19 @@ const src = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 // Browser tests run their own API on another port, so they cannot disturb the one you are using.
 const apiTarget = process.env.E2E_API_URL ?? 'http://localhost:4000';
 
+/** The security headers Vercel sends, so `vite preview` behaves the same and tests can catch a
+ * page the Content Security Policy would break. */
+function productionHeaders() {
+  const { headers } = JSON.parse(readFileSync(src('./vercel.json'), 'utf8')) as {
+    headers: { source: string; headers: { key: string; value: string }[] }[];
+  };
+  const everyPage = headers.find((group) => group.source === '/(.*)')?.headers ?? [];
+  return Object.fromEntries(everyPage.map(({ key, value }) => [key, value]));
+}
+
 export default defineConfig({
   plugins: [react()],
+  preview: { headers: productionHeaders() },
   resolve: {
     alias: {
       '@': src('./src'),

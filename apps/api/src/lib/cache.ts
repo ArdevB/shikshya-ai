@@ -21,6 +21,13 @@ export function cached<T>(key: string, load: () => Promise<T>, ttlMs = DEFAULT_T
   return value;
 }
 
-export function clearCache() {
-  entries.clear();
+/** Forgets everything, or only the keys starting with the given text. */
+export function clearCache(prefix?: string) {
+  if (!prefix) {
+    entries.clear();
+    return;
+  }
+  for (const key of entries.keys()) {
+    if (key.startsWith(prefix)) entries.delete(key);
+  }
 }

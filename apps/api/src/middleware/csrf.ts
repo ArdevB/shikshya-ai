@@ -16,7 +16,11 @@ export const CSRF_HEADER = 'x-shikshya-client';
 export function requireOurSite(req: Request, _res: Response, next: NextFunction) {
   const { origin } = req.headers;
   if ((origin !== undefined && origin !== env.WEB_ORIGIN) || req.headers[CSRF_HEADER] !== 'web') {
-    throw new ApiError(403, 'CSRF_REJECTED', 'This request did not come from the Shikshya website.');
+    throw new ApiError(
+      403,
+      'CSRF_REJECTED',
+      'This request did not come from the Shikshya website.',
+    );
   }
   next();
 }

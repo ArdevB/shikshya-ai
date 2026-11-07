@@ -46,7 +46,11 @@ export function setErrorReporter(next: ErrorReporter | null) {
 }
 
 /** For errors nobody expected: logs the error, and tells the error tracker if there is one. */
-export function reportError(error: unknown, message: string, context: Record<string, unknown> = {}) {
+export function reportError(
+  error: unknown,
+  message: string,
+  context: Record<string, unknown> = {},
+) {
   logger.error({ err: error, ...context }, message);
   try {
     reporter?.(error, { message, ...context });

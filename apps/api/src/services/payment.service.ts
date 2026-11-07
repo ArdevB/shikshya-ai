@@ -13,6 +13,7 @@ import {
 } from '@shikshya/shared';
 import { env } from '../config/env.js';
 import { writeAudit } from '../lib/audit.js';
+import { cached, clearCache } from '../lib/cache.js';
 import { badRequest, conflict, forbidden, notFound } from '../lib/errors.js';
 import { nextNumber } from '../lib/numbering.js';
 import { pageArgs, paginated } from '../lib/pagination.js';
@@ -185,6 +186,7 @@ async function applyVerification(paymentId: string, result: VerifyResult) {
   });
 
   if (settled) {
+    clearCache(FINANCE_CACHE);
     await notifySafely(() =>
       notifyStudentsAndParents([payment.invoice.studentId], 'PAYMENT_SUCCESS', {
         title: 'Payment received',
@@ -348,6 +350,7 @@ export async function recordManualPayment(user: CurrentUser, body: ManualPayment
     });
   });
 
+  clearCache(FINANCE_CACHE);
   await notifySafely(() =>
     notifyStudentsAndParents([invoice.studentId], 'PAYMENT_SUCCESS', {
       title: 'Payment received',
@@ -409,7 +412,15 @@ export async function listPayments(
 
 const TREND_DAYS = 30;
 
-export async function collectionsSummary() {
+/** Read often, and costly once there are years of payments. A new payment clears these. */
+const FINANCE_CACHE = 'finance:';
+
+export const collectionsSummary = () => cached(`${FINANCE_CACHE}summary`, loadCollectionsSummary);
+export const outstandingByProgram = () =>
+  cached(`${FINANCE_CACHE}outstanding`, loadOutstandingByProgram);
+export const collectionsTrend = () => cached(`${FINANCE_CACHE}trend`, loadCollectionsTrend);
+
+async function loadCollectionsSummary() {
   const today = todayInNepal();
   const rows = await prisma.$queryRaw<{ today: bigint | null; month: bigint | null }[]>`
     SELECT
@@ -425,7 +436,7 @@ export async function collectionsSummary() {
   };
 }
 
-export async function outstandingByProgram() {
+async function loadOutstandingByProgram() {
   const rows = await prisma.$queryRaw<
     { code: string; name: string; outstanding: bigint; invoices: bigint }[]
   >`
@@ -448,7 +459,7 @@ export async function outstandingByProgram() {
 }
 
 /** Every one of the last 30 days, with nothing-collected days as zero, so time reads true. */
-export async function collectionsTrend() {
+async function loadCollectionsTrend() {
   const from = addDays(todayInNepal(), 1 - TREND_DAYS);
   const rows = await prisma.$queryRaw<{ date: Date; total: bigint }[]>`
     SELECT ("paidAt" AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kathmandu')::date AS date,

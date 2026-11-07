@@ -48,7 +48,9 @@ export const loginLimit = () =>
     code: 'TOO_MANY_ATTEMPTS',
     message: 'Too many login attempts. Try again in 15 minutes.',
     key: (req) => {
-      const email = String((req.body as { email?: unknown } | undefined)?.email ?? '').toLowerCase();
+      const email = String(
+        (req.body as { email?: unknown } | undefined)?.email ?? '',
+      ).toLowerCase();
       return `${byAddress(req)}|${email}`;
     },
   });

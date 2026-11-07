@@ -13,7 +13,8 @@ export const requestLog = pinoHttp({
   logger,
   genReqId: (req, res) => {
     const incoming = req.headers['x-request-id'];
-    const id = typeof incoming === 'string' && SAFE_REQUEST_ID.test(incoming) ? incoming : randomUUID();
+    const id =
+      typeof incoming === 'string' && SAFE_REQUEST_ID.test(incoming) ? incoming : randomUUID();
     res.setHeader('X-Request-Id', id);
     return id;
   },

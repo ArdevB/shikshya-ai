@@ -15,6 +15,8 @@
     "test": "pnpm --filter @shikshya/shared build && pnpm -r --workspace-concurrency=1 test",
     "coverage": "pnpm --filter @shikshya/shared build && pnpm --filter @shikshya/api coverage && pnpm --filter @shikshya/web coverage",
     "e2e": "pnpm --filter @shikshya/shared build && playwright test --config apps/web/e2e/playwright.config.ts",
+    "docs:generate": "pnpm --filter @shikshya/api docs:generate",
+    "docs:screenshots": "pnpm --filter @shikshya/shared build && node scripts/docs-screenshots.mjs",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r typecheck",
@@ -22,6 +24,7 @@
     "db:local": "pnpm --filter @shikshya/api db:local",
     "db:migrate": "pnpm --filter @shikshya/api db:migrate",
     "db:seed": "pnpm --filter @shikshya/api db:seed",
+    "db:backup": "node scripts/db-backup.mjs",
     "khalti:check": "pnpm --filter @shikshya/api khalti:check",
     "ai:check": "pnpm --filter @shikshya/api ai:check"
   },
@@ -35,7 +38,7 @@
     "globals": "^16.5.0",
     "prettier": "^3.6.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.46.0"
+    "typescript-eslint": "^8.72.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -50,6 +53,9 @@
       "esbuild",
       "prisma",
       "puppeteer"
-    ]
+    ],
+    "overrides": {
+      "basic-ftp": ">=6.2.1"
+    }
   }
 }

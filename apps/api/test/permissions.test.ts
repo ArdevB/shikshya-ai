@@ -38,7 +38,8 @@ const ROUTES = listRoutes();
 
 function readTable(): Map<string, Row> {
   const table = new Map<string, Row>();
-  const row = /^\| `(GET|POST|PUT|PATCH|DELETE)` \| `([^`]+)` \| (.+) \|$/;
+  // Spaces vary, because Prettier lines the columns up.
+  const row = /^\|\s*`(GET|POST|PUT|PATCH|DELETE)`\s*\|\s*`([^`]+)`\s*\|(.+)\|$/;
   let text = '';
   try {
     text = readFileSync(TABLE_FILE, 'utf8');
@@ -162,7 +163,6 @@ const BODIES: Record<string, (side: Side) => object> = {
 const PERSONAL_ROUTE =
   /^\/(students\/:id|dashboard\/students|pdf|invoices\/:id|payments\/:id|payments\/initiate|submissions\/:id|notifications\/:id|assistant\/conversations)/;
 
-const hasParameters = (path: string) => path.includes(':');
 const NOT_REAL = 'clnotarealidnotarealid000';
 
 const withIds = (path: string, ids: string[]) => {
@@ -388,17 +388,28 @@ describeChecks('docs/permissions.md matches the API', () => {
       ['STUDENT', () => `/invoices?studentId=${fixture.b.student}`, () => fixture.b.invoice],
       ['PARENT', () => `/invoices?studentId=${fixture.c.student}`, () => fixture.c.invoice],
       ['STUDENT', () => `/payments?studentId=${fixture.b.student}`, () => fixture.b.payment],
-      ['TEACHER', () => `/attendance/sessions?offeringId=${fixture.c.offering}`, () => fixture.c.session],
+      [
+        'TEACHER',
+        () => `/attendance/sessions?offeringId=${fixture.c.offering}`,
+        () => fixture.c.session,
+      ],
       ['TEACHER', () => `/quizzes?offeringId=${fixture.c.offering}`, () => fixture.c.quiz],
       ['TEACHER', () => `/risk?offeringId=${fixture.c.offering}`, () => fixture.c.risk],
-    ] as [Role, () => string, () => string][])('%s cannot widen a list', async (role, url, hidden) => {
-      const response = await send(role, 'GET', url());
-      if (response.status === 200) expect(JSON.stringify(response.body)).not.toContain(hidden());
-      else expect(response.status).toBe(403);
-    });
+    ] as [Role, () => string, () => string][])(
+      '%s cannot widen a list',
+      async (role, url, hidden) => {
+        const response = await send(role, 'GET', url());
+        if (response.status === 200) expect(JSON.stringify(response.body)).not.toContain(hidden());
+        else expect(response.status).toBe(403);
+      },
+    );
 
     it("leaves someone else's notification unread", async () => {
-      const response = await send('STUDENT', 'POST', `/notifications/${fixture.b.notification}/read`);
+      const response = await send(
+        'STUDENT',
+        'POST',
+        `/notifications/${fixture.b.notification}/read`,
+      );
       expect(response.status).toBe(204);
       const notification = await prisma.notification.findUniqueOrThrow({
         where: { id: fixture.b.notification },

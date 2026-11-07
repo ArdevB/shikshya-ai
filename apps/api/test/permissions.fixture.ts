@@ -177,7 +177,11 @@ export async function createPermissionFixture() {
   ) => {
     const submissionFile = await storage.save(pdf());
     const submission = await prisma.submission.create({
-      data: { assignmentId: records.assignment, studentId: student.id, files: [{ ...submissionFile }] },
+      data: {
+        assignmentId: records.assignment,
+        studentId: student.id,
+        files: [{ ...submissionFile }],
+      },
     });
     await prisma.mark.create({
       data: {

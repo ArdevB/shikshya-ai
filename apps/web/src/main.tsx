@@ -27,7 +27,7 @@ createRoot(document.getElementById('root') as HTMLElement).render(
     <MotionConfig reducedMotion="user">
       <QueryClientProvider client={queryClient}>
         {/* startTransition keeps the old page on screen while the next page's code loads. */}
-        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <BrowserRouter>
           <AuthProvider>
             <App />
             <Toaster

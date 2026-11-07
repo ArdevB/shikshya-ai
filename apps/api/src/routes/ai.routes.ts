@@ -90,8 +90,8 @@ export function policyRoutes() {
   router.use(aiLimit());
   const admin = requireRole(...ADMIN_ROLES);
 
-  router.get('/', admin, async (_req, res) => {
-    res.json(await policies.listPolicies());
+  router.get('/', admin, async (req, res) => {
+    res.json(await policies.listPolicies(parseQuery(req, paginationQuery)));
   });
   router.post('/', admin, uploadFiles, async (req, res) => {
     res

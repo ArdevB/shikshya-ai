@@ -607,6 +607,7 @@ model Notice {
   @@index([publishAt])
   @@index([programId])
   @@index([sectionId])
+  @@index([createdById])
 }
 
 model NoticeRead {
@@ -638,6 +639,8 @@ model Event {
   createdBy User     @relation("EventCreator", fields: [createdById], references: [id], onDelete: Restrict)
 
   @@index([startAt])
+  @@index([sectionId])
+  @@index([programId])
 }
 
 // ---------- Phase 3: fees and payments. All money is integer paisa. ----------
@@ -731,6 +734,7 @@ model Invoice {
   @@index([semesterId])
   @@index([status])
   @@index([dueDate])
+  @@index([feeStructureId])
 }
 
 model InvoiceItem {
@@ -774,6 +778,7 @@ model Payment {
   @@index([invoiceId])
   @@index([status])
   @@index([paidAt])
+  @@index([status, paidAt])
 }
 
 /// Hands out the next number for invoices and receipts, one at a time, inside a transaction.
@@ -956,6 +961,7 @@ model Quiz {
   attempts       QuizAttempt[]
 
   @@index([courseOfferingId, status])
+  @@index([createdById])
 }
 
 model QuizQuestion {
@@ -989,6 +995,7 @@ model QuizAttempt {
   answers QuizAnswer[]
 
   @@unique([quizId, studentId])
+  @@index([studentId])
 }
 
 model QuizAnswer {
@@ -1005,6 +1012,7 @@ model QuizAnswer {
   question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([attemptId, questionId])
+  @@index([questionId])
 }
 
 model TeacherUnavailability {
@@ -1034,4 +1042,5 @@ model AiCallLog {
 
   @@index([createdAt])
   @@index([feature, createdAt])
+  @@index([userId])
 }

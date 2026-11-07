@@ -24,7 +24,10 @@ describe('rate limits', () => {
   it('stops repeated payment attempts from one person, without affecting others', async () => {
     const student = bearer(await tokenFor('student-a@test.local'));
     const pay = () =>
-      api().post('/api/v1/payments/initiate').set(student).send({ invoiceId: 'nope', gateway: 'KHALTI' });
+      api()
+        .post('/api/v1/payments/initiate')
+        .set(student)
+        .send({ invoiceId: 'nope', gateway: 'KHALTI' });
 
     const statuses = await hit(21, pay);
     expect(statuses.slice(0, 20)).not.toContain(429);

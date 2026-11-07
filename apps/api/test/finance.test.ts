@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearCache } from '../src/lib/cache.js';
 import { closePdfBrowser } from '../src/pdf/render.js';
 import { esewaSignature, signedMessage } from '../src/services/gateways/esewa.js';
 import { addDays, todayInNepal } from '../src/lib/time.js';
@@ -870,6 +871,9 @@ describe('manual payments', () => {
 });
 
 describe('reports', () => {
+  // These totals are cached for a minute. Each test starts from the real numbers.
+  beforeEach(() => clearCache());
+
   it('exports outstanding dues as CSV for finance staff only', async () => {
     const response = await api().get(`${V1}/finance/outstanding.csv`).set(bearer(accountant));
     expect(response.status).toBe(200);
@@ -931,6 +935,8 @@ describe('reports', () => {
       },
     });
 
+    // Written straight to the database, so nothing has told the cache.
+    clearCache();
     const after = await totals();
     expect(after.today - before.today).toBe(12345);
     expect(after.chartToday - before.chartToday).toBe(12345);

@@ -1,8 +1,15 @@
-import type { PolicyDocumentBody, PolicyDocumentView, StoredFile } from '@shikshya/shared';
+import type { Prisma } from '@prisma/client';
+import type {
+  PaginationQuery,
+  PolicyDocumentBody,
+  PolicyDocumentView,
+  StoredFile,
+} from '@shikshya/shared';
 import { extractDocumentText } from '../lib/aiService.js';
 import { logAiCall } from '../lib/aiLog.js';
 import { badRequest, notFound } from '../lib/errors.js';
 import { getLlm } from '../lib/llm.js';
+import { pageArgs, paginated } from '../lib/pagination.js';
 import { prisma } from '../lib/prisma.js';
 import { storage } from '../lib/storage.js';
 import type { CurrentUser } from '../middleware/auth.js';
@@ -75,9 +82,9 @@ async function embedMissingChunks(userId: string, documentId?: string) {
   }
 }
 
-async function toViews(ids?: string[]): Promise<PolicyDocumentView[]> {
+async function toViews(args: Prisma.PolicyDocumentFindManyArgs): Promise<PolicyDocumentView[]> {
   const documents = await prisma.policyDocument.findMany({
-    where: ids ? { id: { in: ids } } : undefined,
+    ...args,
     include: {
       uploadedBy: { select: { firstName: true, lastName: true } },
       _count: { select: { chunks: true } },
@@ -104,7 +111,13 @@ async function toViews(ids?: string[]): Promise<PolicyDocumentView[]> {
   }));
 }
 
-export const listPolicies = () => toViews();
+export async function listPolicies(query: PaginationQuery) {
+  const [views, total] = await Promise.all([
+    toViews(pageArgs(query)),
+    prisma.policyDocument.count(),
+  ]);
+  return paginated(views, total, query);
+}
 
 export async function uploadPolicy(
   user: CurrentUser,
@@ -128,7 +141,7 @@ export async function uploadPolicy(
     },
   });
   await embedMissingChunks(user.id, document.id);
-  return (await toViews([document.id]))[0]!;
+  return (await toViews({ where: { id: document.id } }))[0]!;
 }
 
 export async function deletePolicy(id: string) {

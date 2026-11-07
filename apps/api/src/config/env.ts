@@ -18,8 +18,8 @@ const envSchema = z.object({
   // Unset means the level for the environment: info, or silent during tests.
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
 
-  // How many proxies stand in front of the API, so rate limits see the visitor's real address.
-  // Too high lets a visitor fake their address, so count them: 2 for Vercel in front of Render.
+  // How many proxies you trust in front of the API. 1 for Render. Too high lets a visitor fake
+  // their address and escape the rate limits, so only count the ones you control.
   TRUST_PROXY_HOPS: z.coerce.number().int().min(0).default(0),
 
   // Multiplies the per-minute limits on AI and payment routes. Only tests need to change it.

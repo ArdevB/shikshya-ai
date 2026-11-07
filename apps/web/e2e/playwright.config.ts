@@ -16,7 +16,10 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   timeout: 60_000,
   expect: { timeout: 15_000 },
-  reporter: [['list'], ['html', { outputFolder: join(here, '..', 'playwright-report'), open: 'never' }]],
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: join(here, '..', 'playwright-report'), open: 'never' }],
+  ],
   use: {
     baseURL: WEB_URL,
     // The Chrome already on this computer locally. CI installs Playwright's own.
@@ -35,11 +38,13 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
-      command: 'pnpm --filter @shikshya/web exec vite --port 5174 --strictPort',
+      // The production build with Vercel's headers, so these tests see what visitors would.
+      command:
+        'pnpm --filter @shikshya/web exec vite build && pnpm --filter @shikshya/web exec vite preview --port 5174 --strictPort',
       cwd: root,
       url: WEB_URL,
       env: { E2E_API_URL: API_URL },
-      timeout: 120_000,
+      timeout: 180_000,
       reuseExistingServer: false,
     },
   ],

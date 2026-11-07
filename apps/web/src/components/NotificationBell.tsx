@@ -20,11 +20,13 @@ function useLiveNotifications() {
   const queryClient = useQueryClient();
   const [received, setReceived] = useState(0);
   useEffect(() => {
-    // In production the site's own host cannot carry WebSockets, so this names the API's.
-    const socket = io((import.meta.env.VITE_SOCKET_URL as string | undefined) ?? '', {
+    const options = {
       // A function, so a reconnect uses the current token rather than an expired one.
-      auth: (send) => send({ token: getAccessToken() }),
-    });
+      auth: (send: (data: object) => void) => send({ token: getAccessToken() }),
+    };
+    // In production the site's own host cannot carry WebSockets, so this names the API's.
+    const apiHost = import.meta.env.VITE_SOCKET_URL as string | undefined;
+    const socket = apiHost ? io(apiHost, options) : io(options);
     socket.on('notification', (notification: NotificationView) => {
       toast(notification.title, { description: notification.body });
       setReceived((count) => count + 1);

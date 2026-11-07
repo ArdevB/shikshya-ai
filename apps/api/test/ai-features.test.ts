@@ -56,7 +56,9 @@ beforeAll(async () => {
 });
 
 afterAll(() => vi.unstubAllGlobals());
-beforeEach(() => fetchMock.mockReset());
+beforeEach(() => {
+  fetchMock.mockReset();
+});
 
 describe('risk features', () => {
   const base = {

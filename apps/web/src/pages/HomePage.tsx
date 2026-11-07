@@ -51,17 +51,29 @@ const ROLES: { icon: LucideIcon; who: string; does: string[] }[] = [
   {
     icon: BookOpenCheck,
     who: 'Students',
-    does: ['See timetable, attendance and results', 'Hand in work and take quizzes', 'Pay fees online'],
+    does: [
+      'See timetable, attendance and results',
+      'Hand in work and take quizzes',
+      'Pay fees online',
+    ],
   },
   {
     icon: UsersRound,
     who: 'Parents',
-    does: ["Follow each child's progress", 'See notices and deadlines', 'Pay fees for any of their children'],
+    does: [
+      "Follow each child's progress",
+      'See notices and deadlines',
+      'Pay fees for any of their children',
+    ],
   },
   {
     icon: WalletCards,
     who: 'Accounts office',
-    does: ['Generate invoices and apply fines', 'Record cash and bank payments', 'See what is outstanding'],
+    does: [
+      'Generate invoices and apply fines',
+      'Record cash and bank payments',
+      'See what is outstanding',
+    ],
   },
   {
     icon: CalendarClock,
@@ -212,7 +224,10 @@ export function HomePage() {
           />
           <ul className="stagger-children grid gap-4 md:grid-cols-2">
             {AI.map(({ icon: Icon, title, text }) => (
-              <li key={title} className="card-lift flex gap-4 rounded-2xl border bg-card p-6 shadow-soft">
+              <li
+                key={title}
+                className="card-lift flex gap-4 rounded-2xl border bg-card p-6 shadow-soft"
+              >
                 <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-dark">
                   <Icon className="size-5" aria-hidden />
                 </span>

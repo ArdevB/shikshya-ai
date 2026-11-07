@@ -33,9 +33,7 @@ const pretendGemini: LlmClient = {
     const data = JSON.parse(result.replace(/^<data>/, '').replace(/<\/data>$/, '')) as {
       courses: { code: string; percentage: number }[];
     };
-    const text = data.courses
-      .map((course) => `${course.code}: ${course.percentage}%`)
-      .join(', ');
+    const text = data.courses.map((course) => `${course.code}: ${course.percentage}%`).join(', ');
     const reply = `Your attendance is ${text}.`;
     request.onText(reply);
     return { ...usage, text: reply, toolCalls: [] };

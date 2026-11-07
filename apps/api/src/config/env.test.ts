@@ -24,7 +24,9 @@ describe('parseEnv', () => {
   });
 
   it('lists every missing setting at once, not only the first', () => {
-    expect(() => parseEnv({})).toThrow(/DATABASE_URL is required[\s\S]*JWT_ACCESS_SECRET is required/);
+    expect(() => parseEnv({})).toThrow(
+      /DATABASE_URL is required[\s\S]*JWT_ACCESS_SECRET is required/,
+    );
   });
 
   it('treats an empty value as not set, as .env.example leaves optional settings', () => {

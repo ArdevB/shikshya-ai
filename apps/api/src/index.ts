@@ -13,7 +13,7 @@ server.listen(env.PORT, () => {
   logger.info(`Shikshya API listening on port ${env.PORT}`);
   if (env.NODE_ENV === 'production' && env.STORAGE_DRIVER === 'local') {
     logger.warn(
-      'Uploaded files are on this server\'s disk. Many hosts wipe it on every restart: set STORAGE_DRIVER=s3.',
+      "Uploaded files are on this server's disk. Many hosts wipe it on every restart: set STORAGE_DRIVER=s3.",
     );
   }
 });

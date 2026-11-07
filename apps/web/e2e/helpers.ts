@@ -1,4 +1,12 @@
-import { expect, type APIRequestContext, type Browser, type Download, type Locator, type Page, request } from '@playwright/test';
+import {
+  expect,
+  type APIRequestContext,
+  type Browser,
+  type Download,
+  type Locator,
+  type Page,
+  request,
+} from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { API_URL, PASSWORD } from './settings.js';
 

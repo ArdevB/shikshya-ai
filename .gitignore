@@ -14,6 +14,14 @@ apps/api/.local-postgres/
 
 # Uploaded files
 uploads/
+uploads-e2e/
+
+# Database backups, which hold everyone's personal data
+backups/
+
+# Browser test results
+test-results/
+playwright-report/
 
 # Python
 .venv/
