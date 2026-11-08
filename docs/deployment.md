@@ -43,7 +43,7 @@ Render's free plan wipes its disk on every restart, so uploaded files need to li
 
 Note the bucket name, the endpoint address, the region, and the access key and secret. Keep the bucket private, because the API sends all downloads itself.
 
-For a demo where nobody uploads anything, you can skip this and set `STORAGE_DRIVER=local`. The API warns about it in its log.
+For a demo, you can skip this: set `STORAGE_DRIVER` to `local` in step 3 and leave the `S3_` settings empty. Uploads then work until the service restarts, and the API warns about it in its log.
 
 ## 3. API and AI service on Render
 
